@@ -15,6 +15,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,8 +36,9 @@ const (
 
 	backoffBase = 1 * time.Second
 	backoffCap  = 30 * time.Second
-	// maxRateLimitWait caps a 429 wait: X-RateLimit-Reset is always about one
-	// minute ahead, whatever the window's real state.
+	// maxRateLimitWait caps any server-directed wait (a 429's
+	// X-RateLimit-Reset, a resource-not-ready Retry-After). X-RateLimit-Reset
+	// is always about one minute ahead, whatever the window's real state.
 	maxRateLimitWait = 60 * time.Second
 
 	pollStart = 2 * time.Second
@@ -56,6 +58,7 @@ type Client struct {
 	API *ClientWithResponses
 
 	endpoint string
+	origin   string
 	http     *http.Client
 	base     http.RoundTripper
 	product  string
@@ -87,14 +90,21 @@ func WithUserAgent(product string) Option {
 	return func(c *Client) { c.product = strings.TrimSpace(product) }
 }
 
-// WithTransport sets the underlying RoundTripper (default http.DefaultTransport).
+// WithTransport sets the underlying RoundTripper (default http.DefaultTransport;
+// nil keeps the default).
 func WithTransport(rt http.RoundTripper) Option {
-	return func(c *Client) { c.base = rt }
+	return func(c *Client) {
+		if rt != nil {
+			c.base = rt
+		}
+	}
 }
 
 // New builds a client for endpoint (e.g. https://api.cloudafrica.net,
 // without /v1). Every request, retries included, takes its bearer credential
-// from ts.
+// from ts. The client sends requests only to endpoint's scheme and host: a
+// redirect or operation Location naming another origin is refused, so the
+// credential never leaves it.
 func New(endpoint string, ts TokenSource, opts ...Option) (*Client, error) {
 	endpoint = strings.TrimRight(strings.TrimSpace(endpoint), "/")
 	if endpoint == "" {
@@ -106,8 +116,16 @@ func New(endpoint string, ts TokenSource, opts ...Option) (*Client, error) {
 	if ts == nil {
 		return nil, errors.New("cloudafrica: token source is required")
 	}
+	if st, ok := ts.(staticToken); ok && st == "" {
+		return nil, errors.New("cloudafrica: token is empty")
+	}
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Host == "" {
+		return nil, fmt.Errorf("cloudafrica: endpoint %q is not a URL with a host", endpoint)
+	}
 	c := &Client{
 		endpoint: endpoint,
+		origin:   originOf(u),
 		base:     http.DefaultTransport,
 		conc:     defaultConcurrency,
 		retries:  defaultMaxRetries,
@@ -151,6 +169,15 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	}
 }
 
+// originOf is scheme://host with the scheme's default port dropped.
+func originOf(u *url.URL) string {
+	scheme, host := strings.ToLower(u.Scheme), strings.ToLower(u.Host)
+	if (scheme == "https" && strings.HasSuffix(host, ":443")) || (scheme == "http" && strings.HasSuffix(host, ":80")) {
+		host = host[:strings.LastIndex(host, ":")]
+	}
+	return scheme + "://" + host
+}
+
 // transport stamps auth, User-Agent and Idempotency-Key, caps concurrency and
 // retries per the API's contract.
 type transport struct {
@@ -170,6 +197,9 @@ func isWrite(method string) bool {
 
 func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
+	if o := originOf(req.URL); o != t.c.origin {
+		return nil, fmt.Errorf("cloudafrica: refusing request to %s: not the configured endpoint %s", o, t.c.origin)
+	}
 
 	var body []byte
 	if req.Body != nil && req.Body != http.NoBody {
@@ -264,8 +294,14 @@ func (t *transport) retryDelay(resp *http.Response, attempt int) (time.Duration,
 	case http.StatusServiceUnavailable:
 		return t.backoff(attempt), retryTransient
 	case http.StatusConflict:
-		data, _ := io.ReadAll(io.LimitReader(resp.Body, maxProblemBody))
+		data, err := io.ReadAll(io.LimitReader(resp.Body, maxProblemBody))
 		_ = resp.Body.Close()
+		if err != nil {
+			// Hand the caller the bytes read and then the read error, not a
+			// truncated body that looks complete.
+			resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(data), errReader{err}))
+			return 0, retryNone
+		}
 		resp.Body = io.NopCloser(bytes.NewReader(data))
 		var p problemWire
 		if json.Unmarshal(data, &p) != nil {
@@ -318,6 +354,10 @@ func (t *transport) backoff(attempt int) time.Duration {
 	d = min(d, backoffCap)
 	return d/2 + t.c.jitter(d/2)
 }
+
+type errReader struct{ err error }
+
+func (e errReader) Read([]byte) (int, error) { return 0, e.err }
 
 type releaseBody struct {
 	io.ReadCloser
@@ -412,13 +452,11 @@ func CheckResponse(resp *http.Response, body []byte) error {
 	}
 	var p problemWire
 	_ = json.Unmarshal(body, &p) // not JSON: fall back to the status alone
+	// Status is the wire status, which the transport's retries also key on.
 	e := &APIError{
-		Type: p.Type, Title: p.Title, Status: p.Status, Detail: p.Detail, Instance: p.Instance,
+		Type: p.Type, Title: p.Title, Status: resp.StatusCode, Detail: p.Detail, Instance: p.Instance,
 		RequestID: p.RequestID, TraceID: p.TraceID, Violations: p.Violations,
 		Key: p.Key, Scope: p.Scope, Limit: p.Limit, Used: p.Used,
-	}
-	if e.Status == 0 {
-		e.Status = resp.StatusCode
 	}
 	if e.Title == "" && e.Detail == "" && p.Type == "" {
 		e.Title = http.StatusText(resp.StatusCode)
@@ -461,11 +499,14 @@ func OperationPath(operationID string) string {
 	return "/v1/operations/" + operationID
 }
 
-// WaitForOperation polls loc until the operation is complete, failed or
-// cancelled. loc is the 202's Location header or OperationPath(id). It is
-// joined onto the endpoint verbatim: operation ids contain "/" and must not be
-// escaped. A failed or cancelled operation returns the operation together with
-// an *OperationError; a 404 is a hard error.
+// WaitForOperation polls loc while the operation is pending or running, and
+// returns once it is complete, failed or cancelled. loc is the 202's Location
+// header or OperationPath(id). A path is joined onto the endpoint verbatim
+// (operation ids contain "/" and must not be escaped); an absolute URL is used
+// as given and must name the endpoint's origin. A failed or cancelled
+// operation returns the operation together with an *OperationError. An error
+// response (a 404, for example) ends the wait with an *APIError; a state
+// other than the five documented ones ends it with an error naming the state.
 func (c *Client) WaitForOperation(ctx context.Context, loc string) (*Operation, error) {
 	target := loc
 	if !strings.HasPrefix(loc, "http://") && !strings.HasPrefix(loc, "https://") {
@@ -501,6 +542,7 @@ func (c *Client) WaitForOperation(ctx context.Context, loc string) (*Operation, 
 		switch state {
 		case "complete":
 			return &op, nil
+		case "pending", "running":
 		case "failed", "cancelled":
 			oe := &OperationError{ID: loc, State: state}
 			if op.Id != nil {
@@ -511,6 +553,8 @@ func (c *Client) WaitForOperation(ctx context.Context, loc string) (*Operation, 
 				oe.Message = deref(op.Error.Message)
 			}
 			return &op, oe
+		default:
+			return &op, fmt.Errorf("cloudafrica: operation %s has unexpected state %q", loc, state)
 		}
 		// 0.75d..d: jittered, and never beyond pollCap.
 		wait := delay*3/4 + c.jitter(delay/4)

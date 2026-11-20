@@ -26,8 +26,11 @@ transport that:
 - sends one `Idempotency-Key` per write, reused across that write's retries;
 - retries 429 (waiting for `X-RateLimit-Reset`), 503, `idempotency-in-progress` and `resource-not-ready`;
 - caps in-flight requests (`WithConcurrency`, default 4).
+- sends requests, and so the token, only to the endpoint's scheme and host: a redirect or operation `Location` naming
+  another origin is refused.
 
-`WaitForOperation` polls an asynchronous operation (the `Location` of a 202) until it completes or fails.
+`WaitForOperation` polls an asynchronous operation (the `Location` of a 202) while it is pending or running, and
+returns once it completes, fails or is cancelled.
 
 ## Regenerating
 

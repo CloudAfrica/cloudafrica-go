@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -314,15 +316,57 @@ func TestOther4xxNotRetried(t *testing.T) {
 }
 
 func TestRetryStopsAtContextDeadline(t *testing.T) {
-	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-RateLimit-Reset", fmt.Sprint(time.Unix(1_800_000_000, 0).Add(60*time.Second).Unix()))
+	var calls int32
+	c, clk, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.Header().Set("X-RateLimit-Reset", "60")
 		problem(w, http.StatusTooManyRequests, "https://x/problems/rate-limited", "slow")
 	})
-	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(1_800_000_000, 0).Add(5*time.Second))
+	// The guard compares the fake clock against a real deadline, so both
+	// start from the wall clock: the deadline is live whenever the test runs.
+	clk.now = time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := c.API.ListSshKeysWithResponse(ctx, nil)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("err = %v, want deadline exceeded", err)
+	}
+	if calls != 1 || len(clk.Sleeps()) != 0 {
+		t.Errorf("calls=%d sleeps=%v, want one call and no sleep", calls, clk.Sleeps())
+	}
+}
+
+func TestRateLimitResetForms(t *testing.T) {
+	base := time.Unix(1_800_000_000, 0)
+	for _, tc := range []struct {
+		name, header string
+		want         time.Duration
+	}{
+		{"absent", "", 500 * time.Millisecond},
+		{"unparseable", "abc", 500 * time.Millisecond},
+		{"negative", "-5", 500 * time.Millisecond},
+		{"relative seconds", "30", 30 * time.Second},
+		{"unix in the past", fmt.Sprint(base.Add(-time.Minute).Unix()), time.Second},
+		{"unix ahead", fmt.Sprint(base.Add(10 * time.Second).Unix()), 10 * time.Second},
+	} {
+		var calls int32
+		c, clk, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+			if atomic.AddInt32(&calls, 1) == 1 {
+				if tc.header != "" {
+					w.Header().Set("X-RateLimit-Reset", tc.header)
+				}
+				problem(w, http.StatusTooManyRequests, "https://x/problems/rate-limited", "slow")
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{}`))
+		})
+		if _, err := c.API.ListSshKeysWithResponse(context.Background(), nil); err != nil {
+			t.Fatal(err)
+		}
+		if s := clk.Sleeps(); len(s) != 1 || s[0] != tc.want {
+			t.Errorf("%s: sleeps = %v, want [%s]", tc.name, s, tc.want)
+		}
 	}
 }
 
@@ -371,6 +415,14 @@ func TestCheckResponseNonProblemBody(t *testing.T) {
 	}
 	if CheckResponse(&http.Response{StatusCode: 202}, nil) != nil {
 		t.Error("2xx produced an error")
+	}
+}
+
+func TestAPIErrorStatusIsTheWireStatus(t *testing.T) {
+	resp := &http.Response{StatusCode: http.StatusNotFound}
+	err := CheckResponse(resp, []byte(`{"type":"https://x/problems/not-found","status":500}`))
+	if !IsNotFound(err) {
+		t.Errorf("err = %v, want the wire 404 to win over the body's status", err)
 	}
 }
 
@@ -510,6 +562,144 @@ func TestWaitForOperationAbsoluteLocation(t *testing.T) {
 	}
 }
 
+func TestWaitForOperationRefusesAnotherOrigin(t *testing.T) {
+	var foreign int32
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&foreign, 1)
+	}))
+	defer other.Close()
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {})
+	if _, err := c.WaitForOperation(context.Background(), other.URL+"/v1/operations/op-1"); err == nil ||
+		!strings.Contains(err.Error(), "not the configured endpoint") {
+		t.Errorf("err = %v", err)
+	}
+	if foreign != 0 {
+		t.Errorf("foreign origin received %d requests", foreign)
+	}
+}
+
+func TestRedirectToAnotherOriginCarriesNoToken(t *testing.T) {
+	var foreignAuth []string
+	var mu sync.Mutex
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		foreignAuth = append(foreignAuth, r.Header.Get("Authorization"))
+		mu.Unlock()
+	}))
+	defer other.Close()
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/v1/ssh-keys", http.StatusFound)
+	})
+	_, err := c.API.ListSshKeysWithResponse(context.Background(), nil)
+	if err == nil || !strings.Contains(err.Error(), "not the configured endpoint") {
+		t.Errorf("err = %v", err)
+	}
+	if len(foreignAuth) != 0 {
+		t.Errorf("foreign origin received requests with Authorization %q", foreignAuth)
+	}
+}
+
+func TestRedirectWithinTheEndpointKeepsTheToken(t *testing.T) {
+	var auth string
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/moved" {
+			http.Redirect(w, r, "/moved", http.StatusFound)
+			return
+		}
+		auth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	})
+	if _, err := c.API.ListSshKeysWithResponse(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if auth != "Bearer cak_test_secret" {
+		t.Errorf("Authorization after same-origin redirect = %q", auth)
+	}
+}
+
+func TestOriginOfDropsDefaultPorts(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://API.example.com:443/x": "https://api.example.com",
+		"http://h:80":                   "http://h",
+		"https://h:8443":                "https://h:8443",
+		"http://h:443":                  "http://h:443",
+	} {
+		u, err := url.Parse(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := originOf(u); got != want {
+			t.Errorf("originOf(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestWaitForOperationUnexpectedStateIsAnError(t *testing.T) {
+	for _, body := range []string{`{}`, opJSON("op-1", "weird", "")} {
+		var calls int32
+		c, clk, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&calls, 1)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(body))
+		})
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // bounds a regression to a poll loop
+		_, err := c.WaitForOperation(ctx, OperationPath("op-1"))
+		cancel()
+		if err == nil || !strings.Contains(err.Error(), "unexpected state") {
+			t.Errorf("%s: err = %v", body, err)
+		}
+		if calls != 1 || len(clk.Sleeps()) != 0 {
+			t.Errorf("%s: calls=%d sleeps=%v, want one poll", body, calls, clk.Sleeps())
+		}
+	}
+}
+
+func TestWaitForOperationStateIsCaseInsensitive(t *testing.T) {
+	var calls int32
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		state := []string{"PENDING", "Running", "COMPLETE"}[min(int(atomic.AddInt32(&calls, 1))-1, 2)]
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(opJSON("op-1", state, "")))
+	})
+	if _, err := c.WaitForOperation(context.Background(), OperationPath("op-1")); err != nil || calls != 3 {
+		t.Errorf("err=%v calls=%d", err, calls)
+	}
+	c2, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"state":"Failed"}`))
+	})
+	var oe *OperationError
+	if _, err := c2.WaitForOperation(context.Background(), OperationPath("op-7")); !errors.As(err, &oe) ||
+		oe.State != "failed" || oe.ID != OperationPath("op-7") {
+		t.Errorf("err = %v (id falls back to loc when the body has none)", err)
+	}
+}
+
+func TestWaitForOperationUndecodableBody(t *testing.T) {
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`<html>`))
+	})
+	if _, err := c.WaitForOperation(context.Background(), OperationPath("op-1")); err == nil ||
+		!strings.Contains(err.Error(), "decoding operation") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestWaitForOperationCancelledMidPoll(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		cancel()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(opJSON("op-1", "running", "")))
+	})
+	c.sleep = sleepCtx
+	if _, err := c.WaitForOperation(ctx, OperationPath("op-1")); !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestConcurrencyCap(t *testing.T) {
 	for _, limit := range []int{0, 2} { // 0 => default of 4
 		var cur, peak int32
@@ -630,5 +820,143 @@ func TestTokenSourceErrorStopsTheRequest(t *testing.T) {
 func TestStaticTokenRejectsEmpty(t *testing.T) {
 	if _, err := StaticToken("").Token(context.Background()); err == nil {
 		t.Error("empty static token accepted")
+	}
+	if _, err := New("https://x", StaticToken("")); err == nil || !strings.Contains(err.Error(), "token is empty") {
+		t.Errorf("New with an empty static token: err = %v", err)
+	}
+}
+
+func TestWithTransportNilKeepsTheDefault(t *testing.T) {
+	c, err := New("https://x", StaticToken("t"), WithTransport(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.base != http.DefaultTransport {
+		t.Errorf("base = %v", c.base)
+	}
+}
+
+func TestCallerIdempotencyKeyKeptAcrossRetries(t *testing.T) {
+	var keys []string
+	var mu sync.Mutex
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		keys = append(keys, r.Header.Get("Idempotency-Key"))
+		n := len(keys)
+		mu.Unlock()
+		if n == 1 {
+			problem(w, http.StatusServiceUnavailable, "https://x/problems/unavailable", "down")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	_, err := c.API.CreateSshKeyWithResponse(context.Background(),
+		&CreateSshKeyParams{IdempotencyKey: "caller-key-1"}, PublicCreateSshKeyRequest{Name: "n", PublicKey: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(keys) != 2 || keys[0] != "caller-key-1" || keys[1] != "caller-key-1" {
+		t.Errorf("keys = %q, want the caller's key on both attempts", keys)
+	}
+}
+
+func TestIdempotencyKeyByMethod(t *testing.T) {
+	var got string
+	c, _, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		got = r.Header.Get("Idempotency-Key")
+	})
+	for method, want := range map[string]bool{
+		http.MethodPost: true, http.MethodPut: true, http.MethodPatch: true, http.MethodDelete: true,
+		http.MethodGet: false, http.MethodHead: false,
+	} {
+		req, err := http.NewRequest(method, srv.URL+"/v1/x", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := c.http.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if (got != "") != want {
+			t.Errorf("%s: Idempotency-Key = %q, want present=%v", method, got, want)
+		}
+	}
+}
+
+type failingTransport struct{ fails int32 }
+
+func (f *failingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if atomic.AddInt32(&f.fails, -1) >= 0 {
+		return nil, errors.New("connection reset")
+	}
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func TestTransportErrorReleasesTheSlot(t *testing.T) {
+	ft := &failingTransport{fails: 3}
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}, WithConcurrency(1), WithTransport(ft))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for i := 0; i < 3; i++ {
+		if _, err := c.API.ListSshKeysWithResponse(ctx, nil); err == nil {
+			t.Fatalf("attempt %d: want the transport error", i)
+		}
+	}
+	if _, err := c.API.ListSshKeysWithResponse(ctx, nil); err != nil {
+		t.Errorf("after transport errors: %v (a leaked slot blocks until the deadline)", err)
+	}
+}
+
+func TestSlotHeldUntilBodyClosed(t *testing.T) {
+	c, _, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{}`))
+	}, WithConcurrency(1))
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/v1/x", nil)
+	held, err := c.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	if _, err := c.API.ListSshKeysWithResponse(ctx, nil); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("second request while the body is open: err = %v, want deadline exceeded", err)
+	}
+	closed := make(chan struct{})
+	go func() {
+		_ = held.Body.Close()
+		_ = held.Body.Close() // a second Close must not release a slot it does not hold
+		close(closed)
+	}()
+	select {
+	case <-closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("closing the body twice blocked: the second Close tried to release a slot")
+	}
+	if _, err := c.API.ListSshKeysWithResponse(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if tr, ok := c.http.Transport.(*transport); !ok || len(tr.sem) != 0 {
+		t.Error("slot still held after the body was closed")
+	}
+}
+
+type truncatedConflict struct{}
+
+func (truncatedConflict) RoundTrip(r *http.Request) (*http.Response, error) {
+	body := io.MultiReader(strings.NewReader(`{"type":"https://x/problems/idempot`), errReader{errors.New("connection reset")})
+	return &http.Response{StatusCode: http.StatusConflict, Header: http.Header{}, Body: io.NopCloser(body), Request: r}, nil
+}
+
+func TestConflictBodyReadErrorReachesTheCaller(t *testing.T) {
+	c, _, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {}, WithTransport(truncatedConflict{}))
+	if _, err := c.API.ListSshKeysWithResponse(context.Background(), nil); err == nil ||
+		!strings.Contains(err.Error(), "connection reset") {
+		t.Errorf("err = %v, want the body read error", err)
 	}
 }
