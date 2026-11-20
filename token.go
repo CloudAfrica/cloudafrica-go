@@ -7,9 +7,9 @@ import (
 
 // TokenSource supplies the bearer credential for each request. The client
 // asks again on every attempt, so a source that refreshes an expiring token
-// takes effect mid-retry. Token may be called from several goroutines at once
-// (up to the client's concurrency, plus WaitForOperation polls), so an
-// implementation that caches must be safe for concurrent use.
+// takes effect mid-retry. Token is called once a concurrency slot is held, so
+// up to the client's concurrency of calls may run at once; an implementation
+// that caches must be safe for concurrent use.
 type TokenSource interface {
 	Token(ctx context.Context) (string, error)
 }

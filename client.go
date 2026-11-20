@@ -219,8 +219,16 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	var attempt, notReady int
 	for {
+		// Take the slot before the token, so a request queued behind the cap
+		// does not send a token fetched before it waited.
+		select {
+		case t.sem <- struct{}{}:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 		token, err := t.ts.Token(ctx)
 		if err != nil {
+			<-t.sem
 			return nil, fmt.Errorf("cloudafrica: token: %w", err)
 		}
 		r := req.Clone(ctx)
@@ -234,11 +242,6 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			r.Header.Set("Idempotency-Key", key)
 		}
 
-		select {
-		case t.sem <- struct{}{}:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
 		resp, err := t.c.base.RoundTrip(r)
 		if err != nil {
 			<-t.sem

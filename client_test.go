@@ -960,3 +960,73 @@ func TestConflictBodyReadErrorReachesTheCaller(t *testing.T) {
 		t.Errorf("err = %v, want the body read error", err)
 	}
 }
+
+func TestTokenFetchedOnlyOnceASlotIsHeld(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(srv.Close)
+	var calls atomic.Int32
+	ts := TokenSourceFunc(func(context.Context) (string, error) {
+		calls.Add(1)
+		return "cak_test_secret", nil
+	})
+	c, err := New(srv.URL, ts, WithConcurrency(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/v1/x", nil)
+	held, err := c.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := c.API.ListSshKeysWithResponse(context.Background(), nil)
+		done <- err
+	}()
+	time.Sleep(100 * time.Millisecond)
+	if n := calls.Load(); n != 1 {
+		t.Errorf("token calls while the queued request waits for a slot = %d, want 1", n)
+	}
+	_ = held.Body.Close()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("queued request did not run after the slot was released")
+	}
+	if n := calls.Load(); n != 2 {
+		t.Errorf("token calls = %d, want 2", n)
+	}
+}
+
+func TestTokenErrorReleasesTheSlot(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	t.Cleanup(srv.Close)
+	var calls atomic.Int32
+	ts := TokenSourceFunc(func(context.Context) (string, error) {
+		if calls.Add(1) == 1 {
+			return "", errors.New("refresh failed")
+		}
+		return "cak_test_secret", nil
+	})
+	c, err := New(srv.URL, ts, WithConcurrency(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if _, err := c.API.ListSshKeysWithResponse(ctx, nil); err == nil || !strings.Contains(err.Error(), "refresh failed") {
+		t.Fatalf("err = %v, want the token error", err)
+	}
+	if _, err := c.API.ListSshKeysWithResponse(ctx, nil); err != nil {
+		t.Errorf("after a token error: %v (a leaked slot blocks until the deadline)", err)
+	}
+}
