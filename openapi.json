@@ -8108,17 +8108,16 @@
     "/v1/elevation-requests": {
       "post": {
         "summary": "Request to pair this client",
-        "description": "Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.",
+        "description": "Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.",
         "operationId": "createElevationRequest",
         "tags": [
           "Account"
         ],
         "parameters": [
           {
-            "description": "A client-held secret: `cae_` followed by at least 43 base64url characters (32 random bytes). Send it again on every call that needs a step-up.",
+            "description": "A client-held secret: `cae_` followed by at least 43 base64url characters (32 random bytes). Send it again on every call that needs a step-up. Required for a user API token; an OAuth sign-in pairs its grant and sends none.",
             "in": "header",
             "name": "X-CloudAfrica-Elevation",
-            "required": true,
             "schema": {
               "type": "string"
             }
@@ -8146,7 +8145,7 @@
             }
           },
           "400": {
-            "description": "The elevation header is missing or malformed",
+            "description": "For a user API token, the elevation header is missing or malformed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8166,7 +8165,7 @@
             }
           },
           "403": {
-            "description": "Not a user API token",
+            "description": "Neither a user API token nor an OAuth sign-in",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -2564,8 +2564,8 @@ type CreateCardCheckoutParams struct {
 
 // CreateElevationRequestParams defines parameters for CreateElevationRequest.
 type CreateElevationRequestParams struct {
-	// XCloudAfricaElevation A client-held secret: `cae_` followed by at least 43 base64url characters (32 random bytes). Send it again on every call that needs a step-up.
-	XCloudAfricaElevation string `json:"X-CloudAfrica-Elevation"`
+	// XCloudAfricaElevation A client-held secret: `cae_` followed by at least 43 base64url characters (32 random bytes). Send it again on every call that needs a step-up. Required for a user API token; an OAuth sign-in pairs its grant and sends none.
+	XCloudAfricaElevation *string `json:"X-CloudAfrica-Elevation,omitempty"`
 }
 
 // ListIpAddressesParams defines parameters for ListIpAddresses.
@@ -3525,7 +3525,7 @@ type ClientInterface interface {
 
 	// CreateElevationRequestWithBody Request to pair this client
 	//
-	// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+	// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -3534,7 +3534,7 @@ type ClientInterface interface {
 
 	// CreateElevationRequest Request to pair this client
 	//
-	// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+	// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -5539,7 +5539,7 @@ func (c *Gen) SetDefaultCard(ctx context.Context, id string, reqEditors ...Reque
 
 // CreateElevationRequestWithBody Request to pair this client
 //
-// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 //
 // Takes any type of body and a specified content type.
 //
@@ -5558,7 +5558,7 @@ func (c *Gen) CreateElevationRequestWithBody(ctx context.Context, params *Create
 
 // CreateElevationRequest Request to pair this client
 //
-// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10074,14 +10074,16 @@ func NewCreateElevationRequestRequestWithBody(server string, params *CreateEleva
 
 	if params != nil {
 
-		var headerParam0 string
+		if params.XCloudAfricaElevation != nil {
+			var headerParam0 string
 
-		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-CloudAfrica-Elevation", params.XCloudAfricaElevation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
-		if err != nil {
-			return nil, err
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-CloudAfrica-Elevation", *params.XCloudAfricaElevation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("X-CloudAfrica-Elevation", headerParam0)
 		}
-
-		req.Header.Set("X-CloudAfrica-Elevation", headerParam0)
 
 	}
 
@@ -16077,7 +16079,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateElevationRequestWithBodyWithResponse Request to pair this client
 	//
-	// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+	// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16086,7 +16088,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateElevationRequestWithResponse Request to pair this client
 	//
-	// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+	// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -30810,7 +30812,7 @@ func (c *ClientWithResponses) SetDefaultCardWithResponse(ctx context.Context, id
 
 // CreateElevationRequestWithBodyWithResponse Request to pair this client
 //
-// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -30825,7 +30827,7 @@ func (c *ClientWithResponses) CreateElevationRequestWithBodyWithResponse(ctx con
 
 // CreateElevationRequestWithResponse Request to pair this client
 //
-// Registers the secret in the X-CloudAfrica-Elevation header as a pending pairing and returns the page where the token's owner confirms it, with a code to compare. Once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start. Only a user API token can pair.
+// Registers a pending pairing and returns the page where the caller's owner confirms it, with a code to compare. For a user API token the pairing is the secret in the X-CloudAfrica-Elevation header, and once confirmed, requests that carry the same header may use the token's protected scopes for the pairing's window. An OAuth sign-in pairs its grant and sends no header, before or after. Repeating the call while a request is pending returns the same url and code without an expiry. A client that is already paired gets 200 with paired true and no url: that is an answer, not a failure, so a client can call this first on every start.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
