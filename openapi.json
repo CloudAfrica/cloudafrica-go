@@ -649,9 +649,9 @@
             "description": "Optional expiry; null = no expiry."
           },
           "rateLimit": {
+            "$ref": "#/components/schemas/RateLimitState",
             "description": "Current rate-limit window state.",
-            "type": "object",
-            "$ref": "#/components/schemas/RateLimitState"
+            "type": "object"
           }
         }
       },
@@ -740,9 +740,9 @@
             "description": "Verb-specific detail. Keys vary by verb."
           },
           "actorClass": {
+            "$ref": "#/components/schemas/PublicActivityActorClass",
             "description": "Who acted.",
-            "type": "string",
-            "$ref": "#/components/schemas/PublicActivityActorClass"
+            "type": "string"
           },
           "actorIsViewer": {
             "type": "boolean",
@@ -753,9 +753,9 @@
             "description": "A teammate's short display name, or \"Service token\"; null unless the actor is a CUSTOMER."
           },
           "status": {
+            "$ref": "#/components/schemas/PublicActivityStatus",
             "description": "Where the activity stands.",
-            "type": "string",
-            "$ref": "#/components/schemas/PublicActivityStatus"
+            "type": "string"
           },
           "failureReason": {
             "type": "string",
@@ -888,9 +888,9 @@
             "description": "The day component; null for daily."
           },
           "retention": {
+            "$ref": "#/components/schemas/Retention",
             "description": "How many backups to keep, per tier.",
-            "type": "object",
-            "$ref": "#/components/schemas/Retention"
+            "type": "object"
           },
           "windowPreference": {
             "type": "string",
@@ -957,9 +957,9 @@
             "description": "The day component: an ISO day-of-week (1-7) for weekly, 1-28 or -1 (last day of the month) for monthly, absent for daily."
           },
           "retention": {
+            "$ref": "#/components/schemas/Retention1",
             "description": "How many backups to keep at each granularity.",
-            "type": "object",
-            "$ref": "#/components/schemas/Retention1"
+            "type": "object"
           },
           "windowPreference": {
             "type": "string",
@@ -1243,9 +1243,9 @@
         "type": "object",
         "properties": {
           "key": {
+            "$ref": "#/components/schemas/PublicBucketKeyDto",
             "description": "The key, in the shape the key list returns.",
-            "type": "object",
-            "$ref": "#/components/schemas/PublicBucketKeyDto"
+            "type": "object"
           },
           "secretKey": {
             "type": "string",
@@ -1401,9 +1401,9 @@
             "description": "\"pending\", \"linked\", \"declined\" or \"failed\"."
           },
           "card": {
+            "$ref": "#/components/schemas/PublicCardDto",
             "description": "The linked card; null until the link reaches \"linked\".",
-            "type": "object",
-            "$ref": "#/components/schemas/PublicCardDto"
+            "type": "object"
           }
         }
       },
@@ -1897,9 +1897,9 @@
         "type": "object",
         "properties": {
           "cluster": {
+            "$ref": "#/components/schemas/PublicKubernetesClusterDto",
             "description": "The cluster.",
-            "type": "object",
-            "$ref": "#/components/schemas/PublicKubernetesClusterDto"
+            "type": "object"
           },
           "nodes": {
             "type": "array",
@@ -2174,9 +2174,9 @@
             "description": "Active token scopes."
           },
           "rateLimit": {
+            "$ref": "#/components/schemas/RateLimitState1",
             "description": "Current rate-limit window state.",
-            "type": "object",
-            "$ref": "#/components/schemas/RateLimitState1"
+            "type": "object"
           }
         }
       },
@@ -2305,19 +2305,19 @@
             "description": "Whether POST …/cancel may be attempted now."
           },
           "target": {
+            "$ref": "#/components/schemas/Target",
             "description": "The resource the operation acts on, when it has one.",
-            "type": "object",
-            "$ref": "#/components/schemas/Target"
+            "type": "object"
           },
           "createdResource": {
+            "$ref": "#/components/schemas/Target",
             "description": "The resource a completed create made, once it exists.",
-            "type": "object",
-            "$ref": "#/components/schemas/Target"
+            "type": "object"
           },
           "error": {
+            "$ref": "#/components/schemas/Failure",
             "description": "Why it failed, when it failed.",
-            "type": "object",
-            "$ref": "#/components/schemas/Failure"
+            "type": "object"
           },
           "supportNeed": {
             "type": "string",
@@ -2820,9 +2820,9 @@
         "type": "object",
         "properties": {
           "ticket": {
+            "$ref": "#/components/schemas/PublicSupportTicketDto",
             "description": "The ticket.",
-            "type": "object",
-            "$ref": "#/components/schemas/PublicSupportTicketDto"
+            "type": "object"
           },
           "descriptionHtml": {
             "type": "string",
@@ -3084,9 +3084,9 @@
             "description": "Whether rules on this VIP can be added, described or removed now."
           },
           "readOnlyReason": {
+            "$ref": "#/components/schemas/PublicVipFirewallReadOnlyReason",
             "description": "Why the rules are read-only; absent when writable.",
-            "type": "string",
-            "$ref": "#/components/schemas/PublicVipFirewallReadOnlyReason"
+            "type": "string"
           }
         }
       },
@@ -3099,9 +3099,9 @@
             "description": "The virtual machine's id, as published by /v1/vms."
           },
           "policy": {
+            "$ref": "#/components/schemas/PublicBackupPolicyDto",
             "description": "The VM's backup policy.",
-            "type": "object",
-            "$ref": "#/components/schemas/PublicBackupPolicyDto"
+            "type": "object"
           }
         }
       },
@@ -3154,19 +3154,19 @@
             "description": "Power state (running / stopped / starting / stopping)."
           },
           "cpu": {
+            "$ref": "#/components/schemas/Cpu",
             "description": "CPU configuration.",
-            "type": "object",
-            "$ref": "#/components/schemas/Cpu"
+            "type": "object"
           },
           "memory": {
+            "$ref": "#/components/schemas/Memory",
             "description": "Memory configuration.",
-            "type": "object",
-            "$ref": "#/components/schemas/Memory"
+            "type": "object"
           },
           "disk": {
+            "$ref": "#/components/schemas/Disk1",
             "description": "Boot disk size.",
-            "type": "object",
-            "$ref": "#/components/schemas/Disk1"
+            "type": "object"
           },
           "privateIp": {
             "type": "string",
