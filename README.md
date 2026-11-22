@@ -45,6 +45,11 @@ make generate                                 # regenerate from the pinned docum
 `regen` refuses a document that lists any server other than production. CI fails when `client.gen.go` differs
 from a fresh generation.
 
+## Releasing
+
+Set `Version` in `version.go` to the new version in the PR, then tag the merge commit `v<Version>`. The
+`Tag` workflow fails when the two differ.
+
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
