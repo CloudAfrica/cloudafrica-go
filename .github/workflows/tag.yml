@@ -1,0 +1,20 @@
+name: Tag
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: version.go matches the tag
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          got=$(sed -n 's/^const Version = "\(.*\)"$/\1/p' version.go)
+          [ "$got" = "$want" ] || { echo "version.go says $got; tag $GITHUB_REF_NAME needs $want"; exit 1; }

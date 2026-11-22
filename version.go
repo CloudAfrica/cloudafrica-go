@@ -1,4 +1,5 @@
 package cloudafrica
 
-// Version is this SDK's version, reported in the User-Agent.
-const Version = "0.1.0"
+// Version is this SDK's version, reported in the User-Agent. A release tag
+// must equal "v" + Version; .github/workflows/tag.yml checks it.
+const Version = "0.2.1"
