@@ -186,6 +186,33 @@ func (e PublicFirewallRuleDtoStatus) Valid() bool {
 	}
 }
 
+// Defines values for PublicKubernetesUpgradeStatusDtoState.
+const (
+	CURRENT          PublicKubernetesUpgradeStatusDtoState = "CURRENT"
+	DEADLINE         PublicKubernetesUpgradeStatusDtoState = "DEADLINE"
+	UNKNOWN          PublicKubernetesUpgradeStatusDtoState = "UNKNOWN"
+	UNSUPPORTED      PublicKubernetesUpgradeStatusDtoState = "UNSUPPORTED"
+	UPGRADEAVAILABLE PublicKubernetesUpgradeStatusDtoState = "UPGRADE_AVAILABLE"
+)
+
+// Valid indicates whether the value is a known member of the PublicKubernetesUpgradeStatusDtoState enum.
+func (e PublicKubernetesUpgradeStatusDtoState) Valid() bool {
+	switch e {
+	case CURRENT:
+		return true
+	case DEADLINE:
+		return true
+	case UNKNOWN:
+		return true
+	case UNSUPPORTED:
+		return true
+	case UPGRADEAVAILABLE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PublicMemberInviteRequestRole.
 const (
 	PublicMemberInviteRequestRoleAdmin    PublicMemberInviteRequestRole = "admin"
@@ -1526,6 +1553,9 @@ type PublicKubernetesClusterDto struct {
 	// Status Lifecycle status of the cluster's resource.
 	Status *string `json:"status,omitempty"`
 
+	// Upgrade Versions and worker upgrade status; absent while they cannot be read.
+	Upgrade *PublicKubernetesClusterUpgradeDto `json:"upgrade,omitempty"`
+
 	// WorkerBootDiskGib Boot disk per worker, in GiB.
 	WorkerBootDiskGib *int32 `json:"workerBootDiskGib,omitempty"`
 
@@ -1569,6 +1599,33 @@ type PublicKubernetesClusterScaleRequest struct {
 	WorkerCount int32 `json:"workerCount"`
 }
 
+// PublicKubernetesClusterUpgradeDto The cluster's versions and what its workers can be upgraded to. The platform upgrades the control plane; you upgrade the workers.
+type PublicKubernetesClusterUpgradeDto struct {
+	// ControlPlane The control plane's status.
+	ControlPlane *PublicKubernetesUpgradeStatusDto `json:"controlPlane,omitempty"`
+
+	// ControlPlaneWindow When the platform next moves the control plane to a new minor; absent when none is announced.
+	ControlPlaneWindow *PublicKubernetesUpgradeWindowDto `json:"controlPlaneWindow,omitempty"`
+
+	// WorkerKubernetesVersion The workers' Kubernetes version.
+	WorkerKubernetesVersion *string `json:"workerKubernetesVersion,omitempty"`
+
+	// WorkerTalosVersion The workers' Talos version.
+	WorkerTalosVersion *string `json:"workerTalosVersion,omitempty"`
+
+	// WorkerTargets What an upgrade of the workers can go to now, oldest first; empty when there is none. A worker upgrade never goes past the control plane's version.
+	WorkerTargets *[]PublicKubernetesUpgradeTargetDto `json:"workerTargets,omitempty"`
+
+	// Workers The workers' status.
+	Workers *PublicKubernetesUpgradeStatusDto `json:"workers,omitempty"`
+}
+
+// PublicKubernetesClusterUpgradeWorkersRequest The Kubernetes version to upgrade a cluster's workers to.
+type PublicKubernetesClusterUpgradeWorkersRequest struct {
+	// TargetKubernetes One of the cluster's `upgrade.workerTargets[].kubernetes`, such as `v1.37.2`.
+	TargetKubernetes string `json:"targetKubernetes"`
+}
+
 // PublicKubernetesMetricPointDto One sample of a worker's CPU or memory series.
 type PublicKubernetesMetricPointDto struct {
 	// EpochSec Unix time of the sample, in seconds.
@@ -1609,6 +1666,45 @@ type PublicKubernetesNodeMetricDto struct {
 
 	// Unavailable True, with no points, when the series cannot be read now. An answer, not an error.
 	Unavailable *bool `json:"unavailable,omitempty"`
+}
+
+// PublicKubernetesUpgradeStatusDto Where a cluster component stands against the versions the platform supports.
+type PublicKubernetesUpgradeStatusDto struct {
+	// Deadline The date for DEADLINE and UNSUPPORTED; absent otherwise.
+	//
+	// Examples: 2022-03-10
+	Deadline *openapi_types.Date `json:"deadline,omitempty"`
+
+	// State CURRENT: supported, nothing newer offered. UPGRADE_AVAILABLE: a newer version is offered. DEADLINE: going out of support on `deadline`; after that date the platform may upgrade it itself. UNSUPPORTED: past `deadline`; the platform may upgrade it. UNKNOWN: the platform has no record of the version.
+	State *PublicKubernetesUpgradeStatusDtoState `json:"state,omitempty"`
+}
+
+// PublicKubernetesUpgradeStatusDtoState CURRENT: supported, nothing newer offered. UPGRADE_AVAILABLE: a newer version is offered. DEADLINE: going out of support on `deadline`; after that date the platform may upgrade it itself. UNSUPPORTED: past `deadline`; the platform may upgrade it. UNKNOWN: the platform has no record of the version.
+type PublicKubernetesUpgradeStatusDtoState string
+
+// PublicKubernetesUpgradeTargetDto A version pair the workers can be upgraded to.
+type PublicKubernetesUpgradeTargetDto struct {
+	// Kubernetes The Kubernetes version; the upgrade request names it.
+	Kubernetes *string `json:"kubernetes,omitempty"`
+
+	// Talos The Talos version that comes with it.
+	Talos *string `json:"talos,omitempty"`
+}
+
+// PublicKubernetesUpgradeWindowDto When the platform moves the control plane to a new minor version, both days inclusive.
+type PublicKubernetesUpgradeWindowDto struct {
+	// End Last day of the window.
+	//
+	// Examples: 2022-03-10
+	End *openapi_types.Date `json:"end,omitempty"`
+
+	// Kubernetes The minor version the control plane moves to.
+	Kubernetes *string `json:"kubernetes,omitempty"`
+
+	// Start First day of the window.
+	//
+	// Examples: 2022-03-10
+	Start *openapi_types.Date `json:"start,omitempty"`
 }
 
 // PublicLimitDto One effective limit on the account.
@@ -2982,6 +3078,9 @@ type ResizeKubernetesClusterJSONRequestBody = PublicKubernetesClusterResizeReque
 // ScaleKubernetesClusterJSONRequestBody defines body for ScaleKubernetesCluster for application/json ContentType.
 type ScaleKubernetesClusterJSONRequestBody = PublicKubernetesClusterScaleRequest
 
+// UpgradeKubernetesClusterWorkersJSONRequestBody defines body for UpgradeKubernetesClusterWorkers for application/json ContentType.
+type UpgradeKubernetesClusterWorkersJSONRequestBody = PublicKubernetesClusterUpgradeWorkersRequest
+
 // CreateMemberJSONRequestBody defines body for CreateMember for application/json ContentType.
 type CreateMemberJSONRequestBody = PublicMemberInviteRequest
 
@@ -3647,6 +3746,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/scale (the `ScaleKubernetesCluster` operationId).
 	ScaleKubernetesCluster(ctx context.Context, id string, params *ScaleKubernetesClusterParams, body ScaleKubernetesClusterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpgradeKubernetesClusterWorkersWithBody Upgrade a Kubernetes cluster's workers
+	//
+	// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+	UpgradeKubernetesClusterWorkersWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpgradeKubernetesClusterWorkers Upgrade a Kubernetes cluster's workers
+	//
+	// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+	UpgradeKubernetesClusterWorkers(ctx context.Context, id string, body UpgradeKubernetesClusterWorkersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetKubernetesClusterKubeconfig Download a cluster's kubeconfig
 	//
@@ -5802,6 +5919,44 @@ func (c *Gen) ScaleKubernetesClusterWithBody(ctx context.Context, id string, par
 // Corresponds with POST /v1/kubernetes/clusters/{id}/actions/scale (the `ScaleKubernetesCluster` operationId).
 func (c *Gen) ScaleKubernetesCluster(ctx context.Context, id string, params *ScaleKubernetesClusterParams, body ScaleKubernetesClusterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewScaleKubernetesClusterRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpgradeKubernetesClusterWorkersWithBody Upgrade a Kubernetes cluster's workers
+//
+// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+func (c *Gen) UpgradeKubernetesClusterWorkersWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpgradeKubernetesClusterWorkersRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpgradeKubernetesClusterWorkers Upgrade a Kubernetes cluster's workers
+//
+// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+func (c *Gen) UpgradeKubernetesClusterWorkers(ctx context.Context, id string, body UpgradeKubernetesClusterWorkersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpgradeKubernetesClusterWorkersRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -10553,6 +10708,53 @@ func NewScaleKubernetesClusterRequestWithBody(server string, id string, params *
 		req.Header.Set("Idempotency-Key", headerParam0)
 
 	}
+
+	return req, nil
+}
+
+// NewUpgradeKubernetesClusterWorkersRequest calls the generic UpgradeKubernetesClusterWorkers builder with application/json body
+func NewUpgradeKubernetesClusterWorkersRequest(server string, id string, body UpgradeKubernetesClusterWorkersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpgradeKubernetesClusterWorkersRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewUpgradeKubernetesClusterWorkersRequestWithBody constructs an http.Request for the UpgradeKubernetesClusterWorkers method, with any body, and a specified content type
+func NewUpgradeKubernetesClusterWorkersRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/kubernetes/clusters/%s/actions/upgrade-workers", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -16212,6 +16414,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/scale (the `ScaleKubernetesCluster` operationId).
 	ScaleKubernetesClusterWithResponse(ctx context.Context, id string, params *ScaleKubernetesClusterParams, body ScaleKubernetesClusterJSONRequestBody, reqEditors ...RequestEditorFn) (*ScaleKubernetesClusterResponse, error)
 
+	// UpgradeKubernetesClusterWorkersWithBodyWithResponse Upgrade a Kubernetes cluster's workers
+	//
+	// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+	UpgradeKubernetesClusterWorkersWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpgradeKubernetesClusterWorkersResponse, error)
+
+	// UpgradeKubernetesClusterWorkersWithResponse Upgrade a Kubernetes cluster's workers
+	//
+	// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+	UpgradeKubernetesClusterWorkersWithResponse(ctx context.Context, id string, body UpgradeKubernetesClusterWorkersJSONRequestBody, reqEditors ...RequestEditorFn) (*UpgradeKubernetesClusterWorkersResponse, error)
+
 	// GetKubernetesClusterKubeconfigWithResponse Download a cluster's kubeconfig
 	//
 	// A kubeconfig that logs in with your API token: it holds no credential. It reads the token, and the paired elevation secret that cluster access needs, from the two environment variables its exec entry names. Only an account owner or admin can use it. 409 while the cluster's state does not allow a login; 503 while cluster login is not available yet.
@@ -21569,6 +21789,110 @@ func (r ScaleKubernetesClusterResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ScaleKubernetesClusterResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// UpgradeKubernetesClusterWorkersResponse202Headers the declared response headers of an HTTP 202 response for UpgradeKubernetesClusterWorkers
+type UpgradeKubernetesClusterWorkersResponse202Headers struct {
+	Location *string
+}
+
+type UpgradeKubernetesClusterWorkersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *OperationAccepted
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *ProblemDetail
+	// Headers202 the parsed response headers for an HTTP 202 response
+	Headers202 *UpgradeKubernetesClusterWorkersResponse202Headers
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetJSON202() *OperationAccepted {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON409() *ProblemDetail {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r UpgradeKubernetesClusterWorkersResponse) GetApplicationproblemJSON503() *ProblemDetail {
+	return r.ApplicationproblemJSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r UpgradeKubernetesClusterWorkersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpgradeKubernetesClusterWorkersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpgradeKubernetesClusterWorkersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpgradeKubernetesClusterWorkersResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -31035,6 +31359,36 @@ func (c *ClientWithResponses) ScaleKubernetesClusterWithResponse(ctx context.Con
 	return ParseScaleKubernetesClusterResponse(rsp)
 }
 
+// UpgradeKubernetesClusterWorkersWithBodyWithResponse Upgrade a Kubernetes cluster's workers
+//
+// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+func (c *ClientWithResponses) UpgradeKubernetesClusterWorkersWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpgradeKubernetesClusterWorkersResponse, error) {
+	rsp, err := c.UpgradeKubernetesClusterWorkersWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpgradeKubernetesClusterWorkersResponse(rsp)
+}
+
+// UpgradeKubernetesClusterWorkersWithResponse Upgrade a Kubernetes cluster's workers
+//
+// Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/kubernetes/clusters/{id}/actions/upgrade-workers (the `UpgradeKubernetesClusterWorkers` operationId).
+func (c *ClientWithResponses) UpgradeKubernetesClusterWorkersWithResponse(ctx context.Context, id string, body UpgradeKubernetesClusterWorkersJSONRequestBody, reqEditors ...RequestEditorFn) (*UpgradeKubernetesClusterWorkersResponse, error) {
+	rsp, err := c.UpgradeKubernetesClusterWorkers(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpgradeKubernetesClusterWorkersResponse(rsp)
+}
+
 // GetKubernetesClusterKubeconfigWithResponse Download a cluster's kubeconfig
 //
 // A kubeconfig that logs in with your API token: it holds no credential. It reads the token, and the paired elevation secret that cluster access needs, from the two environment variables its exec entry names. Only an account owner or admin can use it. 409 while the cluster's state does not allow a login; 503 while cluster login is not available yet.
@@ -36483,6 +36837,101 @@ func ParseScaleKubernetesClusterResponse(rsp *http.Response) (*ScaleKubernetesCl
 	switch {
 	case rsp.StatusCode == 202:
 		var headers ScaleKubernetesClusterResponse202Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: "uri-reference"}); err != nil {
+				return nil, err
+			}
+			headers.Location = &value
+		}
+		response.Headers202 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseUpgradeKubernetesClusterWorkersResponse parses an HTTP response from a UpgradeKubernetesClusterWorkersWithResponse call
+func ParseUpgradeKubernetesClusterWorkersResponse(rsp *http.Response) (*UpgradeKubernetesClusterWorkersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpgradeKubernetesClusterWorkersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest OperationAccepted
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		var headers UpgradeKubernetesClusterWorkersResponse202Headers
 		if values := rsp.Header.Values("Location"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: "uri-reference"}); err != nil {

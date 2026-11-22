@@ -1990,6 +1990,11 @@
               "2022-03-10T16:15:50Z"
             ],
             "description": "Creation timestamp (ISO 8601 UTC)."
+          },
+          "upgrade": {
+            "$ref": "#/components/schemas/PublicKubernetesClusterUpgradeDto",
+            "description": "Versions and worker upgrade status; absent while they cannot be read.",
+            "type": "object"
           }
         }
       },
@@ -2046,6 +2051,55 @@
             "type": "integer",
             "format": "int32",
             "description": "The target worker count."
+          }
+        }
+      },
+      "PublicKubernetesClusterUpgradeDto": {
+        "type": "object",
+        "description": "The cluster's versions and what its workers can be upgraded to. The platform upgrades the control plane; you upgrade the workers.",
+        "properties": {
+          "workerKubernetesVersion": {
+            "type": "string",
+            "description": "The workers' Kubernetes version."
+          },
+          "workerTalosVersion": {
+            "type": "string",
+            "description": "The workers' Talos version."
+          },
+          "controlPlane": {
+            "$ref": "#/components/schemas/PublicKubernetesUpgradeStatusDto",
+            "description": "The control plane's status.",
+            "type": "object"
+          },
+          "workers": {
+            "$ref": "#/components/schemas/PublicKubernetesUpgradeStatusDto",
+            "description": "The workers' status.",
+            "type": "object"
+          },
+          "workerTargets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicKubernetesUpgradeTargetDto"
+            },
+            "description": "What an upgrade of the workers can go to now, oldest first; empty when there is none. A worker upgrade never goes past the control plane's version."
+          },
+          "controlPlaneWindow": {
+            "$ref": "#/components/schemas/PublicKubernetesUpgradeWindowDto",
+            "description": "When the platform next moves the control plane to a new minor; absent when none is announced.",
+            "type": "object"
+          }
+        }
+      },
+      "PublicKubernetesClusterUpgradeWorkersRequest": {
+        "description": "The Kubernetes version to upgrade a cluster's workers to.",
+        "type": "object",
+        "required": [
+          "targetKubernetes"
+        ],
+        "properties": {
+          "targetKubernetes": {
+            "type": "string",
+            "description": "One of the cluster's `upgrade.workerTargets[].kubernetes`, such as `v1.37.2`."
           }
         }
       },
@@ -2114,6 +2168,71 @@
           "unavailable": {
             "type": "boolean",
             "description": "True, with no points, when the series cannot be read now. An answer, not an error."
+          }
+        }
+      },
+      "PublicKubernetesUpgradeStatusDto": {
+        "type": "object",
+        "description": "Where a cluster component stands against the versions the platform supports.",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "CURRENT: supported, nothing newer offered. UPGRADE_AVAILABLE: a newer version is offered. DEADLINE: going out of support on `deadline`; after that date the platform may upgrade it itself. UNSUPPORTED: past `deadline`; the platform may upgrade it. UNKNOWN: the platform has no record of the version.",
+            "enum": [
+              "CURRENT",
+              "UPGRADE_AVAILABLE",
+              "DEADLINE",
+              "UNSUPPORTED",
+              "UNKNOWN"
+            ]
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2022-03-10"
+            ],
+            "description": "The date for DEADLINE and UNSUPPORTED; absent otherwise."
+          }
+        }
+      },
+      "PublicKubernetesUpgradeTargetDto": {
+        "type": "object",
+        "description": "A version pair the workers can be upgraded to.",
+        "properties": {
+          "kubernetes": {
+            "type": "string",
+            "description": "The Kubernetes version; the upgrade request names it."
+          },
+          "talos": {
+            "type": "string",
+            "description": "The Talos version that comes with it."
+          }
+        }
+      },
+      "PublicKubernetesUpgradeWindowDto": {
+        "type": "object",
+        "description": "When the platform moves the control plane to a new minor version, both days inclusive.",
+        "properties": {
+          "kubernetes": {
+            "type": "string",
+            "description": "The minor version the control plane moves to."
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2022-03-10"
+            ],
+            "description": "First day of the window."
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2022-03-10"
+            ],
+            "description": "Last day of the window."
           }
         }
       },
@@ -9395,6 +9514,154 @@
           {
             "ApiToken": [
               "write:compute"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/kubernetes/clusters/{id}/actions/upgrade-workers": {
+      "post": {
+        "summary": "Upgrade a Kubernetes cluster's workers",
+        "description": "Moves every worker to `targetKubernetes` and its Talos version, one node at a time; each node drains, so a workload with one replica is down while its node restarts. `targetKubernetes` is one of the cluster's `upgrade.workerTargets[].kubernetes`. Needs protected:compute and a paired elevation secret. No Idempotency-Key: a retry of a running upgrade is refused with 409. Asynchronous: 202, with the operation to poll at Location when one started, else Location is the cluster. 400 when `targetKubernetes` is absent or blank; 409, with the reason, for a version the cluster cannot move to, a cluster that is not active, or another change running; 503 when the Kubernetes service cannot be reached or could not start the upgrade; retry.",
+        "operationId": "upgradeKubernetesClusterWorkers",
+        "tags": [
+          "Kubernetes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicKubernetesClusterUpgradeWorkersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationAccepted"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "URI of the operation to poll: /v1/operations/{operationId}.",
+                "schema": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "protected:compute"
             ]
           }
         ]
