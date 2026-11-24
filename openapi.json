@@ -81,6 +81,34 @@
           }
         }
       },
+      "CursorPagePublicBucketObjectDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketObjectDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "CursorPagePublicBucketObjectVersionDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketObjectVersionDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
       "CursorPagePublicCardDto": {
         "type": "object",
         "properties": {
@@ -1181,6 +1209,81 @@
           }
         }
       },
+      "PublicBucketCorsDto": {
+        "description": "A bucket's CORS rules.",
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketCorsRuleDto"
+            },
+            "description": "The rules; send them back as basedOn when you replace them."
+          }
+        }
+      },
+      "PublicBucketCorsRequest": {
+        "description": "A bucket's new CORS rules, replacing all of the current ones.",
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketCorsRuleDto"
+            },
+            "description": "The new rules; an empty list removes every rule."
+          },
+          "basedOn": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketCorsRuleDto"
+            },
+            "description": "The rules GET /cors returned. Omitted means none were seen, which is a 409 on a bucket that has rules."
+          }
+        }
+      },
+      "PublicBucketCorsRuleDto": {
+        "type": "object",
+        "description": "One CORS rule: which browser origins may call the bucket, and how.",
+        "properties": {
+          "allowedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Origins allowed, such as https://example.com, or *."
+          },
+          "allowedMethods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "HTTP methods allowed: GET, PUT, POST, DELETE, HEAD."
+          },
+          "allowedHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Request headers allowed."
+          },
+          "exposeHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Response headers a browser may read."
+          },
+          "maxAgeSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How long a browser may cache the preflight answer, in seconds, or null."
+          }
+        }
+      },
       "PublicBucketDto": {
         "description": "An object storage bucket in the customer's account.",
         "type": "object",
@@ -1280,6 +1383,248 @@
           "bucketName": {
             "type": "string",
             "description": "The bucket this key is attached to, or null for an account-level key."
+          }
+        }
+      },
+      "PublicBucketLifecycleDto": {
+        "description": "A bucket's lifecycle rules.",
+        "type": "object",
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketLifecycleRuleDto"
+            },
+            "description": "The rules; send them back as basedOn when you replace them."
+          },
+          "unsupported": {
+            "type": "boolean",
+            "description": "True when the bucket also holds rules this API cannot represent; replacing the rules then needs replaceUnsupported."
+          }
+        }
+      },
+      "PublicBucketLifecycleRequest": {
+        "description": "A bucket's new lifecycle rules, replacing all of the current ones.",
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "properties": {
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketLifecycleRuleDto"
+            },
+            "description": "The new rules; an empty list removes every rule."
+          },
+          "basedOn": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBucketLifecycleRuleDto"
+            },
+            "description": "The rules GET /lifecycle returned. Omitted means none were seen, which is a 409 on a bucket that has rules. Not checked when replaceUnsupported is true."
+          },
+          "replaceUnsupported": {
+            "type": "boolean",
+            "description": "True to replace whatever is stored, rules this API cannot represent included, without the basedOn check; always needs step-up."
+          }
+        }
+      },
+      "PublicBucketLifecycleRuleDto": {
+        "type": "object",
+        "description": "One lifecycle rule: what expires under a prefix, and when.",
+        "properties": {
+          "prefix": {
+            "type": "string",
+            "description": "The key prefix the rule applies to; empty or null for the whole bucket."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "True when the rule is in force."
+          },
+          "expirationDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days after which current versions expire, or null."
+          },
+          "noncurrentExpirationDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days after which noncurrent versions are removed, or null."
+          },
+          "abortIncompleteUploadDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days after which incomplete multipart uploads are aborted, or null."
+          },
+          "expireDeleteMarker": {
+            "type": "boolean",
+            "description": "True to remove delete markers that no longer hide any version."
+          }
+        }
+      },
+      "PublicBucketObjectDto": {
+        "description": "One object in a bucket, as the listing returns it.",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The object's key, its full name inside the bucket."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size in bytes."
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When the current version was written."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "The content type, when the listing carries one."
+          }
+        }
+      },
+      "PublicBucketObjectMetadataDto": {
+        "description": "The metadata, tags and retention of an object's current version.",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The object's key."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The current version's id; null on a bucket that was never versioned."
+          },
+          "etag": {
+            "type": "string",
+            "description": "The entity tag."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size in bytes."
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When the current version was written."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Content-Type."
+          },
+          "cacheControl": {
+            "type": "string",
+            "description": "Cache-Control."
+          },
+          "contentDisposition": {
+            "type": "string",
+            "description": "Content-Disposition."
+          },
+          "contentEncoding": {
+            "type": "string",
+            "description": "Content-Encoding."
+          },
+          "contentLanguage": {
+            "type": "string",
+            "description": "Content-Language."
+          },
+          "expires": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "Expires."
+          },
+          "userMetadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "User metadata (x-amz-meta-*), without the prefix."
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Object tags."
+          },
+          "retentionMode": {
+            "type": "string",
+            "description": "Object-lock retention mode, or null."
+          },
+          "retainUntil": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When object-lock retention ends, or null."
+          },
+          "legalHold": {
+            "type": "boolean",
+            "description": "True when a legal hold is set."
+          }
+        }
+      },
+      "PublicBucketObjectVersionDto": {
+        "description": "One version of an object; a delete marker is a version too.",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The object's key."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The version id; null on a bucket that was never versioned."
+          },
+          "latest": {
+            "type": "boolean",
+            "description": "True for the object's current version."
+          },
+          "deleteMarker": {
+            "type": "boolean",
+            "description": "True when this version is a delete marker: the object reads as deleted."
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Size in bytes; 0 for a delete marker."
+          },
+          "lastModified": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When this version was written."
+          }
+        }
+      },
+      "PublicBucketProtectionDto": {
+        "description": "A bucket's object lock and default encryption.",
+        "type": "object",
+        "properties": {
+          "objectLock": {
+            "type": "boolean",
+            "description": "True when object lock is on; it can only be chosen when the bucket is ordered."
+          },
+          "defaultEncryption": {
+            "type": "string",
+            "description": "The default server-side encryption algorithm, or NONE when none is set."
           }
         }
       },
@@ -2394,6 +2739,90 @@
           }
         }
       },
+      "PublicObjectDownloadUrlDto": {
+        "description": "A short-lived URL that downloads one object without further credentials.",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL; anyone holding it can download the object until it expires."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When the URL stops working."
+          }
+        }
+      },
+      "PublicObjectDownloadUrlRequest": {
+        "description": "The object a download URL is for.",
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The object's key."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "An earlier version to download; omit for the current one."
+          }
+        }
+      },
+      "PublicObjectUploadUrlDto": {
+        "description": "A short-lived URL that uploads one new object with an HTTP PUT.",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to PUT the bytes to; a credential until it expires."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When the URL stops working."
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers the PUT must send, every one, exactly as given: they are signed into the URL."
+          }
+        }
+      },
+      "PublicObjectUploadUrlRequest": {
+        "description": "The new object an upload URL is for.",
+        "type": "object",
+        "required": [
+          "key",
+          "contentType",
+          "contentLength"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The new object's key. A key that already exists is refused, when the URL is minted on a versioned bucket and by the PUT otherwise."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "The Content-Type the upload will send."
+          },
+          "contentLength": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The exact size the upload will send, in bytes; at most 25 MiB."
+          }
+        }
+      },
       "PublicOperationDto": {
         "description": "An asynchronous operation started by a write, polled until it reaches a terminal state.",
         "type": "object",
@@ -3325,7 +3754,7 @@
           },
           "kubernetesClusterId": {
             "type": "string",
-            "description": "Id of the hosted Kubernetes cluster this VM is a worker node of; absent for an ordinary VM. Actions that change a node or its settings are refused on the VM routes."
+            "description": "Id of the Managed Kubernetes cluster this VM is a worker node of; absent for an ordinary VM. Actions that change a node or its settings are refused on the VM routes."
           }
         }
       },
@@ -7323,6 +7752,1334 @@
           {
             "ApiToken": [
               "protected:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/cors": {
+      "put": {
+        "summary": "Replace a bucket's CORS rules",
+        "description": "Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.",
+        "operationId": "replaceBucketCors",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicBucketCorsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketCorsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "protected:s3"
+            ]
+          }
+        ]
+      },
+      "get": {
+        "summary": "A bucket's CORS rules",
+        "description": "Read live from the storage cluster.",
+        "operationId": "getBucketCors",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketCorsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/lifecycle": {
+      "put": {
+        "summary": "Replace a bucket's lifecycle rules",
+        "description": "Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.",
+        "operationId": "replaceBucketLifecycle",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicBucketLifecycleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketLifecycleDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "protected:s3"
+            ]
+          }
+        ]
+      },
+      "get": {
+        "summary": "A bucket's lifecycle rules",
+        "description": "Read live from the storage cluster. `unsupported` means the bucket also holds rules this API cannot represent.",
+        "operationId": "getBucketLifecycle",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketLifecycleDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects": {
+      "get": {
+        "summary": "List the objects in a bucket",
+        "description": "Lists the objects under `prefix`, or every object when it is omitted, in key order. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.",
+        "operationId": "listBucketObjects",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "description": "List only keys starting with this text.",
+            "name": "prefix",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPagePublicBucketObjectDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects/deleted": {
+      "get": {
+        "summary": "List deleted objects that can still be recovered",
+        "description": "Lists the keys whose current version is a delete marker, under `prefix` or across the bucket: deleted, with earlier versions still held. Each row is that delete marker. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.",
+        "operationId": "listBucketDeletedObjects",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "description": "List only keys starting with this text.",
+            "name": "prefix",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPagePublicBucketObjectVersionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects/download-url": {
+      "post": {
+        "summary": "Mint a short-lived URL that downloads one object",
+        "description": "Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.",
+        "operationId": "createObjectDownloadUrl",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicObjectDownloadUrlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicObjectDownloadUrlDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "protected:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects/metadata": {
+      "get": {
+        "summary": "Get one object's metadata, tags and retention",
+        "description": "Reads the current version's content headers, user metadata, tags and object-lock retention. 404 for a missing key, and for an object whose current version is a delete marker.",
+        "operationId": "getBucketObjectMetadata",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The object's key.",
+            "required": true,
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketObjectMetadataDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects/upload-url": {
+      "post": {
+        "summary": "Mint a short-lived URL that uploads one new object",
+        "description": "Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.",
+        "operationId": "createObjectUploadUrl",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicObjectUploadUrlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicObjectUploadUrlDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "write:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/objects/versions": {
+      "get": {
+        "summary": "List the versions of one object",
+        "description": "Lists every version of exactly one key, delete markers included: the current version first, then newest first. A bucket that was never versioned lists one entry with a null versionId. Cursor-paginated; a version written between two pages can list the version it replaced again, now as noncurrent, and when the newest versions are permanently deleted between pages, the version that becomes current can be skipped. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.",
+        "operationId": "listBucketObjectVersions",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.",
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The object's key.",
+            "required": true,
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPagePublicBucketObjectVersionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/buckets/{id}/protection": {
+      "get": {
+        "summary": "A bucket's object lock and default encryption",
+        "description": "Read-only: object lock is chosen when the bucket is ordered.",
+        "operationId": "getBucketProtection",
+        "tags": [
+          "Buckets"
+        ],
+        "parameters": [
+          {
+            "description": "The bucket's id, as GET /v1/buckets returns in `id` — not its name.",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBucketProtectionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:s3"
             ]
           }
         ]
@@ -21773,16 +23530,15 @@
   },
   "x-tagGroups": [
     {
-      "name": "Account",
       "tags": [
         "Account",
         "Operations",
         "Activity",
         "Projects"
-      ]
+      ],
+      "name": "Account"
     },
     {
-      "name": "Compute",
       "tags": [
         "Virtual machines",
         "Disks & interfaces",
@@ -21790,49 +23546,50 @@
         "Placement groups",
         "Sandboxes",
         "Kubernetes"
-      ]
+      ],
+      "name": "Compute"
     },
     {
-      "name": "Networking",
       "tags": [
         "VPCs",
         "IP addresses",
         "Firewall rules"
-      ]
+      ],
+      "name": "Networking"
     },
     {
-      "name": "Backup",
       "tags": [
         "Backups",
         "Backup policies"
-      ]
+      ],
+      "name": "Backup"
     },
     {
-      "name": "Storage",
       "tags": [
         "Buckets",
         "Access keys"
-      ]
+      ],
+      "name": "Storage"
     },
     {
-      "name": "Billing",
       "tags": [
         "Balance & details",
         "Transactions",
         "Cards"
-      ]
+      ],
+      "name": "Billing"
     },
     {
-      "name": "Team",
       "tags": [
         "Members"
-      ]
+      ],
+      "name": "Team"
     },
     {
-      "name": "Support",
       "tags": [
         "Support"
-      ]
+      ],
+      "name": "Support"
     }
   ]
 }

@@ -485,6 +485,18 @@ type CursorPagePublicBucketKeyDto struct {
 	NextCursor *string               `json:"nextCursor,omitempty"`
 }
 
+// CursorPagePublicBucketObjectDto defines model for CursorPagePublicBucketObjectDto.
+type CursorPagePublicBucketObjectDto struct {
+	Data       *[]PublicBucketObjectDto `json:"data,omitempty"`
+	NextCursor *string                  `json:"nextCursor,omitempty"`
+}
+
+// CursorPagePublicBucketObjectVersionDto defines model for CursorPagePublicBucketObjectVersionDto.
+type CursorPagePublicBucketObjectVersionDto struct {
+	Data       *[]PublicBucketObjectVersionDto `json:"data,omitempty"`
+	NextCursor *string                         `json:"nextCursor,omitempty"`
+}
+
 // CursorPagePublicCardDto defines model for CursorPagePublicCardDto.
 type CursorPagePublicCardDto struct {
 	Data       *[]PublicCardDto `json:"data,omitempty"`
@@ -1082,6 +1094,39 @@ type PublicBillingDetailsRequest struct {
 	VatNumber *string `json:"vatNumber,omitempty"`
 }
 
+// PublicBucketCorsDto A bucket's CORS rules.
+type PublicBucketCorsDto struct {
+	// Rules The rules; send them back as basedOn when you replace them.
+	Rules *[]PublicBucketCorsRuleDto `json:"rules,omitempty"`
+}
+
+// PublicBucketCorsRequest A bucket's new CORS rules, replacing all of the current ones.
+type PublicBucketCorsRequest struct {
+	// BasedOn The rules GET /cors returned. Omitted means none were seen, which is a 409 on a bucket that has rules.
+	BasedOn *[]PublicBucketCorsRuleDto `json:"basedOn,omitempty"`
+
+	// Rules The new rules; an empty list removes every rule.
+	Rules []PublicBucketCorsRuleDto `json:"rules"`
+}
+
+// PublicBucketCorsRuleDto One CORS rule: which browser origins may call the bucket, and how.
+type PublicBucketCorsRuleDto struct {
+	// AllowedHeaders Request headers allowed.
+	AllowedHeaders *[]string `json:"allowedHeaders,omitempty"`
+
+	// AllowedMethods HTTP methods allowed: GET, PUT, POST, DELETE, HEAD.
+	AllowedMethods *[]string `json:"allowedMethods,omitempty"`
+
+	// AllowedOrigins Origins allowed, such as https://example.com, or *.
+	AllowedOrigins *[]string `json:"allowedOrigins,omitempty"`
+
+	// ExposeHeaders Response headers a browser may read.
+	ExposeHeaders *[]string `json:"exposeHeaders,omitempty"`
+
+	// MaxAgeSeconds How long a browser may cache the preflight answer, in seconds, or null.
+	MaxAgeSeconds *int32 `json:"maxAgeSeconds,omitempty"`
+}
+
 // PublicBucketDto An object storage bucket in the customer's account.
 type PublicBucketDto struct {
 	// CreatedAt Creation timestamp (ISO 8601 UTC).
@@ -1147,6 +1192,154 @@ type PublicBucketKeyDto struct {
 
 	// Name Customer-chosen key name.
 	Name *string `json:"name,omitempty"`
+}
+
+// PublicBucketLifecycleDto A bucket's lifecycle rules.
+type PublicBucketLifecycleDto struct {
+	// Rules The rules; send them back as basedOn when you replace them.
+	Rules *[]PublicBucketLifecycleRuleDto `json:"rules,omitempty"`
+
+	// Unsupported True when the bucket also holds rules this API cannot represent; replacing the rules then needs replaceUnsupported.
+	Unsupported *bool `json:"unsupported,omitempty"`
+}
+
+// PublicBucketLifecycleRequest A bucket's new lifecycle rules, replacing all of the current ones.
+type PublicBucketLifecycleRequest struct {
+	// BasedOn The rules GET /lifecycle returned. Omitted means none were seen, which is a 409 on a bucket that has rules. Not checked when replaceUnsupported is true.
+	BasedOn *[]PublicBucketLifecycleRuleDto `json:"basedOn,omitempty"`
+
+	// ReplaceUnsupported True to replace whatever is stored, rules this API cannot represent included, without the basedOn check; always needs step-up.
+	ReplaceUnsupported *bool `json:"replaceUnsupported,omitempty"`
+
+	// Rules The new rules; an empty list removes every rule.
+	Rules []PublicBucketLifecycleRuleDto `json:"rules"`
+}
+
+// PublicBucketLifecycleRuleDto One lifecycle rule: what expires under a prefix, and when.
+type PublicBucketLifecycleRuleDto struct {
+	// AbortIncompleteUploadDays Days after which incomplete multipart uploads are aborted, or null.
+	AbortIncompleteUploadDays *int32 `json:"abortIncompleteUploadDays,omitempty"`
+
+	// Enabled True when the rule is in force.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// ExpirationDays Days after which current versions expire, or null.
+	ExpirationDays *int32 `json:"expirationDays,omitempty"`
+
+	// ExpireDeleteMarker True to remove delete markers that no longer hide any version.
+	ExpireDeleteMarker *bool `json:"expireDeleteMarker,omitempty"`
+
+	// NoncurrentExpirationDays Days after which noncurrent versions are removed, or null.
+	NoncurrentExpirationDays *int32 `json:"noncurrentExpirationDays,omitempty"`
+
+	// Prefix The key prefix the rule applies to; empty or null for the whole bucket.
+	Prefix *string `json:"prefix,omitempty"`
+}
+
+// PublicBucketObjectDto One object in a bucket, as the listing returns it.
+type PublicBucketObjectDto struct {
+	// ContentType The content type, when the listing carries one.
+	ContentType *string `json:"contentType,omitempty"`
+
+	// Key The object's key, its full name inside the bucket.
+	Key *string `json:"key,omitempty"`
+
+	// LastModified When the current version was written.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	LastModified *time.Time `json:"lastModified,omitempty"`
+
+	// SizeBytes Size in bytes.
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
+}
+
+// PublicBucketObjectMetadataDto The metadata, tags and retention of an object's current version.
+type PublicBucketObjectMetadataDto struct {
+	// CacheControl Cache-Control.
+	CacheControl *string `json:"cacheControl,omitempty"`
+
+	// ContentDisposition Content-Disposition.
+	ContentDisposition *string `json:"contentDisposition,omitempty"`
+
+	// ContentEncoding Content-Encoding.
+	ContentEncoding *string `json:"contentEncoding,omitempty"`
+
+	// ContentLanguage Content-Language.
+	ContentLanguage *string `json:"contentLanguage,omitempty"`
+
+	// ContentType Content-Type.
+	ContentType *string `json:"contentType,omitempty"`
+
+	// Etag The entity tag.
+	Etag *string `json:"etag,omitempty"`
+
+	// Expires Expires.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	Expires *time.Time `json:"expires,omitempty"`
+
+	// Key The object's key.
+	Key *string `json:"key,omitempty"`
+
+	// LastModified When the current version was written.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	LastModified *time.Time `json:"lastModified,omitempty"`
+
+	// LegalHold True when a legal hold is set.
+	LegalHold *bool `json:"legalHold,omitempty"`
+
+	// RetainUntil When object-lock retention ends, or null.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	RetainUntil *time.Time `json:"retainUntil,omitempty"`
+
+	// RetentionMode Object-lock retention mode, or null.
+	RetentionMode *string `json:"retentionMode,omitempty"`
+
+	// SizeBytes Size in bytes.
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
+
+	// Tags Object tags.
+	Tags *map[string]string `json:"tags,omitempty"`
+
+	// UserMetadata User metadata (x-amz-meta-*), without the prefix.
+	UserMetadata *map[string]string `json:"userMetadata,omitempty"`
+
+	// VersionId The current version's id; null on a bucket that was never versioned.
+	VersionId *string `json:"versionId,omitempty"`
+}
+
+// PublicBucketObjectVersionDto One version of an object; a delete marker is a version too.
+type PublicBucketObjectVersionDto struct {
+	// DeleteMarker True when this version is a delete marker: the object reads as deleted.
+	DeleteMarker *bool `json:"deleteMarker,omitempty"`
+
+	// Key The object's key.
+	Key *string `json:"key,omitempty"`
+
+	// LastModified When this version was written.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	LastModified *time.Time `json:"lastModified,omitempty"`
+
+	// Latest True for the object's current version.
+	Latest *bool `json:"latest,omitempty"`
+
+	// SizeBytes Size in bytes; 0 for a delete marker.
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
+
+	// VersionId The version id; null on a bucket that was never versioned.
+	VersionId *string `json:"versionId,omitempty"`
+}
+
+// PublicBucketProtectionDto A bucket's object lock and default encryption.
+type PublicBucketProtectionDto struct {
+	// DefaultEncryption The default server-side encryption algorithm, or NONE when none is set.
+	DefaultEncryption *string `json:"defaultEncryption,omitempty"`
+
+	// ObjectLock True when object lock is on; it can only be chosen when the bucket is ordered.
+	ObjectLock *bool `json:"objectLock,omitempty"`
 }
 
 // PublicBucketUsageDto What one bucket is holding, and what has moved in and out of it.
@@ -1803,6 +1996,52 @@ type PublicMemberRoleRequest struct {
 // PublicMemberRoleRequestRole The new role: `operator`, `admin`, `billing` or `viewer`. Only an owner may change a role to or from `billing`. `owner` is refused, and an existing owner's role cannot be changed here — ownership is transferred, not granted.
 type PublicMemberRoleRequestRole string
 
+// PublicObjectDownloadUrlDto A short-lived URL that downloads one object without further credentials.
+type PublicObjectDownloadUrlDto struct {
+	// ExpiresAt When the URL stops working.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Url The URL; anyone holding it can download the object until it expires.
+	Url *string `json:"url,omitempty"`
+}
+
+// PublicObjectDownloadUrlRequest The object a download URL is for.
+type PublicObjectDownloadUrlRequest struct {
+	// Key The object's key.
+	Key string `json:"key"`
+
+	// VersionId An earlier version to download; omit for the current one.
+	VersionId *string `json:"versionId,omitempty"`
+}
+
+// PublicObjectUploadUrlDto A short-lived URL that uploads one new object with an HTTP PUT.
+type PublicObjectUploadUrlDto struct {
+	// ExpiresAt When the URL stops working.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Headers Headers the PUT must send, every one, exactly as given: they are signed into the URL.
+	Headers *map[string]string `json:"headers,omitempty"`
+
+	// Url The URL to PUT the bytes to; a credential until it expires.
+	Url *string `json:"url,omitempty"`
+}
+
+// PublicObjectUploadUrlRequest The new object an upload URL is for.
+type PublicObjectUploadUrlRequest struct {
+	// ContentLength The exact size the upload will send, in bytes; at most 25 MiB.
+	ContentLength int64 `json:"contentLength"`
+
+	// ContentType The Content-Type the upload will send.
+	ContentType string `json:"contentType"`
+
+	// Key The new object's key. A key that already exists is refused, when the URL is minted on a versioned bucket and by the PUT otherwise.
+	Key string `json:"key"`
+}
+
 // PublicOperationDto An asynchronous operation started by a write, polled until it reaches a terminal state.
 type PublicOperationDto struct {
 	// Cancellable Whether POST …/cancel may be attempted now.
@@ -2342,7 +2581,7 @@ type PublicVmDto struct {
 	// Image Image the VM was provisioned from.
 	Image *string `json:"image,omitempty"`
 
-	// KubernetesClusterId Id of the hosted Kubernetes cluster this VM is a worker node of; absent for an ordinary VM. Actions that change a node or its settings are refused on the VM routes.
+	// KubernetesClusterId Id of the Managed Kubernetes cluster this VM is a worker node of; absent for an ordinary VM. Actions that change a node or its settings are refused on the VM routes.
 	KubernetesClusterId *string `json:"kubernetesClusterId,omitempty"`
 
 	// Memory Memory configuration.
@@ -2635,6 +2874,48 @@ type ListBucketsParams struct {
 type CreateBucketParams struct {
 	// IdempotencyKey Client-chosen key, 1-255 printable ASCII characters, unique per logical request. A retry under the same key replays the first outcome instead of repeating the write: 409 while the first call is still in flight, and 422 if the key is reused for a different request.
 	IdempotencyKey string `json:"Idempotency-Key"`
+}
+
+// ListBucketObjectsParams defines parameters for ListBucketObjects.
+type ListBucketObjectsParams struct {
+	// Cursor The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Prefix List only keys starting with this text.
+	Prefix *string `form:"prefix,omitempty" json:"prefix,omitempty"`
+}
+
+// ListBucketDeletedObjectsParams defines parameters for ListBucketDeletedObjects.
+type ListBucketDeletedObjectsParams struct {
+	// Cursor The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Prefix List only keys starting with this text.
+	Prefix *string `form:"prefix,omitempty" json:"prefix,omitempty"`
+}
+
+// GetBucketObjectMetadataParams defines parameters for GetBucketObjectMetadata.
+type GetBucketObjectMetadataParams struct {
+	// Key The object's key.
+	Key string `form:"key" json:"key"`
+}
+
+// ListBucketObjectVersionsParams defines parameters for ListBucketObjectVersions.
+type ListBucketObjectVersionsParams struct {
+	// Cursor The previous response's nextCursor; leave out for the first page. A malformed cursor, or one from a different kind of list, is 400. Send it only to the route that returned it.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Key The object's key.
+	Key string `form:"key" json:"key"`
+
+	// Limit Page size, a whole number from 1 to 200; defaults to 50. Any other value is 400.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // GetBucketUsageParams defines parameters for GetBucketUsage.
@@ -3059,6 +3340,18 @@ type CreateBucketJSONRequestBody = PublicOrderBucketRequest
 
 // DeleteBucketJSONRequestBody defines body for DeleteBucket for application/json ContentType.
 type DeleteBucketJSONRequestBody = PublicDeleteBucketRequest
+
+// ReplaceBucketCorsJSONRequestBody defines body for ReplaceBucketCors for application/json ContentType.
+type ReplaceBucketCorsJSONRequestBody = PublicBucketCorsRequest
+
+// ReplaceBucketLifecycleJSONRequestBody defines body for ReplaceBucketLifecycle for application/json ContentType.
+type ReplaceBucketLifecycleJSONRequestBody = PublicBucketLifecycleRequest
+
+// CreateObjectDownloadUrlJSONRequestBody defines body for CreateObjectDownloadUrl for application/json ContentType.
+type CreateObjectDownloadUrlJSONRequestBody = PublicObjectDownloadUrlRequest
+
+// CreateObjectUploadUrlJSONRequestBody defines body for CreateObjectUploadUrl for application/json ContentType.
+type CreateObjectUploadUrlJSONRequestBody = PublicObjectUploadUrlRequest
 
 // UpdateBucketVersioningJSONRequestBody defines body for UpdateBucketVersioning for application/json ContentType.
 type UpdateBucketVersioningJSONRequestBody = PublicBucketVersioningRequest
@@ -3549,6 +3842,127 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v1/buckets/{id}/actions/delete (the `DeleteBucket` operationId).
 	DeleteBucket(ctx context.Context, id string, body DeleteBucketJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBucketCors A bucket's CORS rules
+	//
+	// Read live from the storage cluster.
+	//
+	// Corresponds with GET /v1/buckets/{id}/cors (the `GetBucketCors` operationId).
+	GetBucketCors(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceBucketCorsWithBody Replace a bucket's CORS rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+	ReplaceBucketCorsWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceBucketCors Replace a bucket's CORS rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+	ReplaceBucketCors(ctx context.Context, id string, body ReplaceBucketCorsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBucketLifecycle A bucket's lifecycle rules
+	//
+	// Read live from the storage cluster. `unsupported` means the bucket also holds rules this API cannot represent.
+	//
+	// Corresponds with GET /v1/buckets/{id}/lifecycle (the `GetBucketLifecycle` operationId).
+	GetBucketLifecycle(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceBucketLifecycleWithBody Replace a bucket's lifecycle rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+	ReplaceBucketLifecycleWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceBucketLifecycle Replace a bucket's lifecycle rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+	ReplaceBucketLifecycle(ctx context.Context, id string, body ReplaceBucketLifecycleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBucketObjects List the objects in a bucket
+	//
+	// Lists the objects under `prefix`, or every object when it is omitted, in key order. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects (the `ListBucketObjects` operationId).
+	ListBucketObjects(ctx context.Context, id string, params *ListBucketObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBucketDeletedObjects List deleted objects that can still be recovered
+	//
+	// Lists the keys whose current version is a delete marker, under `prefix` or across the bucket: deleted, with earlier versions still held. Each row is that delete marker. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/deleted (the `ListBucketDeletedObjects` operationId).
+	ListBucketDeletedObjects(ctx context.Context, id string, params *ListBucketDeletedObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateObjectDownloadUrlWithBody Mint a short-lived URL that downloads one object
+	//
+	// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+	CreateObjectDownloadUrlWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateObjectDownloadUrl Mint a short-lived URL that downloads one object
+	//
+	// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+	CreateObjectDownloadUrl(ctx context.Context, id string, body CreateObjectDownloadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBucketObjectMetadata Get one object's metadata, tags and retention
+	//
+	// Reads the current version's content headers, user metadata, tags and object-lock retention. 404 for a missing key, and for an object whose current version is a delete marker.
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/metadata (the `GetBucketObjectMetadata` operationId).
+	GetBucketObjectMetadata(ctx context.Context, id string, params *GetBucketObjectMetadataParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateObjectUploadUrlWithBody Mint a short-lived URL that uploads one new object
+	//
+	// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+	CreateObjectUploadUrlWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateObjectUploadUrl Mint a short-lived URL that uploads one new object
+	//
+	// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+	CreateObjectUploadUrl(ctx context.Context, id string, body CreateObjectUploadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBucketObjectVersions List the versions of one object
+	//
+	// Lists every version of exactly one key, delete markers included: the current version first, then newest first. A bucket that was never versioned lists one entry with a null versionId. Cursor-paginated; a version written between two pages can list the version it replaced again, now as noncurrent, and when the newest versions are permanently deleted between pages, the version that becomes current can be skipped. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/versions (the `ListBucketObjectVersions` operationId).
+	ListBucketObjectVersions(ctx context.Context, id string, params *ListBucketObjectVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBucketProtection A bucket's object lock and default encryption
+	//
+	// Read-only: object lock is chosen when the bucket is ordered.
+	//
+	// Corresponds with GET /v1/buckets/{id}/protection (the `GetBucketProtection` operationId).
+	GetBucketProtection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBucketUsage A bucket's storage usage and traffic over a window
 	//
@@ -5472,6 +5886,277 @@ func (c *Gen) DeleteBucketWithBody(ctx context.Context, id string, contentType s
 // Corresponds with POST /v1/buckets/{id}/actions/delete (the `DeleteBucket` operationId).
 func (c *Gen) DeleteBucket(ctx context.Context, id string, body DeleteBucketJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteBucketRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBucketCors A bucket's CORS rules
+//
+// Read live from the storage cluster.
+//
+// Corresponds with GET /v1/buckets/{id}/cors (the `GetBucketCors` operationId).
+func (c *Gen) GetBucketCors(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBucketCorsRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceBucketCorsWithBody Replace a bucket's CORS rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+func (c *Gen) ReplaceBucketCorsWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceBucketCorsRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceBucketCors Replace a bucket's CORS rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+func (c *Gen) ReplaceBucketCors(ctx context.Context, id string, body ReplaceBucketCorsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceBucketCorsRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBucketLifecycle A bucket's lifecycle rules
+//
+// Read live from the storage cluster. `unsupported` means the bucket also holds rules this API cannot represent.
+//
+// Corresponds with GET /v1/buckets/{id}/lifecycle (the `GetBucketLifecycle` operationId).
+func (c *Gen) GetBucketLifecycle(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBucketLifecycleRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceBucketLifecycleWithBody Replace a bucket's lifecycle rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+func (c *Gen) ReplaceBucketLifecycleWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceBucketLifecycleRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceBucketLifecycle Replace a bucket's lifecycle rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+func (c *Gen) ReplaceBucketLifecycle(ctx context.Context, id string, body ReplaceBucketLifecycleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceBucketLifecycleRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBucketObjects List the objects in a bucket
+//
+// Lists the objects under `prefix`, or every object when it is omitted, in key order. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Corresponds with GET /v1/buckets/{id}/objects (the `ListBucketObjects` operationId).
+func (c *Gen) ListBucketObjects(ctx context.Context, id string, params *ListBucketObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBucketObjectsRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBucketDeletedObjects List deleted objects that can still be recovered
+//
+// Lists the keys whose current version is a delete marker, under `prefix` or across the bucket: deleted, with earlier versions still held. Each row is that delete marker. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Corresponds with GET /v1/buckets/{id}/objects/deleted (the `ListBucketDeletedObjects` operationId).
+func (c *Gen) ListBucketDeletedObjects(ctx context.Context, id string, params *ListBucketDeletedObjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBucketDeletedObjectsRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateObjectDownloadUrlWithBody Mint a short-lived URL that downloads one object
+//
+// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+func (c *Gen) CreateObjectDownloadUrlWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateObjectDownloadUrlRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateObjectDownloadUrl Mint a short-lived URL that downloads one object
+//
+// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+func (c *Gen) CreateObjectDownloadUrl(ctx context.Context, id string, body CreateObjectDownloadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateObjectDownloadUrlRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBucketObjectMetadata Get one object's metadata, tags and retention
+//
+// Reads the current version's content headers, user metadata, tags and object-lock retention. 404 for a missing key, and for an object whose current version is a delete marker.
+//
+// Corresponds with GET /v1/buckets/{id}/objects/metadata (the `GetBucketObjectMetadata` operationId).
+func (c *Gen) GetBucketObjectMetadata(ctx context.Context, id string, params *GetBucketObjectMetadataParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBucketObjectMetadataRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateObjectUploadUrlWithBody Mint a short-lived URL that uploads one new object
+//
+// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+func (c *Gen) CreateObjectUploadUrlWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateObjectUploadUrlRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateObjectUploadUrl Mint a short-lived URL that uploads one new object
+//
+// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+func (c *Gen) CreateObjectUploadUrl(ctx context.Context, id string, body CreateObjectUploadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateObjectUploadUrlRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBucketObjectVersions List the versions of one object
+//
+// Lists every version of exactly one key, delete markers included: the current version first, then newest first. A bucket that was never versioned lists one entry with a null versionId. Cursor-paginated; a version written between two pages can list the version it replaced again, now as noncurrent, and when the newest versions are permanently deleted between pages, the version that becomes current can be skipped. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Corresponds with GET /v1/buckets/{id}/objects/versions (the `ListBucketObjectVersions` operationId).
+func (c *Gen) ListBucketObjectVersions(ctx context.Context, id string, params *ListBucketObjectVersionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBucketObjectVersionsRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBucketProtection A bucket's object lock and default encryption
+//
+// Read-only: object lock is chosen when the bucket is ordered.
+//
+// Corresponds with GET /v1/buckets/{id}/protection (the `GetBucketProtection` operationId).
+func (c *Gen) GetBucketProtection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBucketProtectionRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -9802,6 +10487,604 @@ func NewDeleteBucketRequestWithBody(server string, id string, contentType string
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBucketCorsRequest constructs an http.Request for the GetBucketCors method
+func NewGetBucketCorsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/cors", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewReplaceBucketCorsRequest calls the generic ReplaceBucketCors builder with application/json body
+func NewReplaceBucketCorsRequest(server string, id string, body ReplaceBucketCorsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceBucketCorsRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewReplaceBucketCorsRequestWithBody constructs an http.Request for the ReplaceBucketCors method, with any body, and a specified content type
+func NewReplaceBucketCorsRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/cors", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBucketLifecycleRequest constructs an http.Request for the GetBucketLifecycle method
+func NewGetBucketLifecycleRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/lifecycle", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewReplaceBucketLifecycleRequest calls the generic ReplaceBucketLifecycle builder with application/json body
+func NewReplaceBucketLifecycleRequest(server string, id string, body ReplaceBucketLifecycleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceBucketLifecycleRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewReplaceBucketLifecycleRequestWithBody constructs an http.Request for the ReplaceBucketLifecycle method, with any body, and a specified content type
+func NewReplaceBucketLifecycleRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/lifecycle", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBucketObjectsRequest constructs an http.Request for the ListBucketObjects method
+func NewListBucketObjectsRequest(server string, id string, params *ListBucketObjectsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Prefix != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "prefix", *params.Prefix, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBucketDeletedObjectsRequest constructs an http.Request for the ListBucketDeletedObjects method
+func NewListBucketDeletedObjectsRequest(server string, id string, params *ListBucketDeletedObjectsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects/deleted", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Prefix != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "prefix", *params.Prefix, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateObjectDownloadUrlRequest calls the generic CreateObjectDownloadUrl builder with application/json body
+func NewCreateObjectDownloadUrlRequest(server string, id string, body CreateObjectDownloadUrlJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateObjectDownloadUrlRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewCreateObjectDownloadUrlRequestWithBody constructs an http.Request for the CreateObjectDownloadUrl method, with any body, and a specified content type
+func NewCreateObjectDownloadUrlRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects/download-url", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBucketObjectMetadataRequest constructs an http.Request for the GetBucketObjectMetadata method
+func NewGetBucketObjectMetadataRequest(server string, id string, params *GetBucketObjectMetadataParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects/metadata", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "key", params.Key, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateObjectUploadUrlRequest calls the generic CreateObjectUploadUrl builder with application/json body
+func NewCreateObjectUploadUrlRequest(server string, id string, body CreateObjectUploadUrlJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateObjectUploadUrlRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewCreateObjectUploadUrlRequestWithBody constructs an http.Request for the CreateObjectUploadUrl method, with any body, and a specified content type
+func NewCreateObjectUploadUrlRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects/upload-url", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBucketObjectVersionsRequest constructs an http.Request for the ListBucketObjectVersions method
+func NewListBucketObjectVersionsRequest(server string, id string, params *ListBucketObjectVersionsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/objects/versions", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "key", params.Key, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBucketProtectionRequest constructs an http.Request for the GetBucketProtection method
+func NewGetBucketProtectionRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/buckets/%s/protection", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -16191,6 +17474,141 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /v1/buckets/{id}/actions/delete (the `DeleteBucket` operationId).
 	DeleteBucketWithResponse(ctx context.Context, id string, body DeleteBucketJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteBucketResponse, error)
 
+	// GetBucketCorsWithResponse A bucket's CORS rules
+	//
+	// Read live from the storage cluster.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/cors (the `GetBucketCors` operationId).
+	GetBucketCorsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketCorsResponse, error)
+
+	// ReplaceBucketCorsWithBodyWithResponse Replace a bucket's CORS rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+	ReplaceBucketCorsWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceBucketCorsResponse, error)
+
+	// ReplaceBucketCorsWithResponse Replace a bucket's CORS rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+	ReplaceBucketCorsWithResponse(ctx context.Context, id string, body ReplaceBucketCorsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceBucketCorsResponse, error)
+
+	// GetBucketLifecycleWithResponse A bucket's lifecycle rules
+	//
+	// Read live from the storage cluster. `unsupported` means the bucket also holds rules this API cannot represent.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/lifecycle (the `GetBucketLifecycle` operationId).
+	GetBucketLifecycleWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketLifecycleResponse, error)
+
+	// ReplaceBucketLifecycleWithBodyWithResponse Replace a bucket's lifecycle rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+	ReplaceBucketLifecycleWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceBucketLifecycleResponse, error)
+
+	// ReplaceBucketLifecycleWithResponse Replace a bucket's lifecycle rules
+	//
+	// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+	ReplaceBucketLifecycleWithResponse(ctx context.Context, id string, body ReplaceBucketLifecycleJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceBucketLifecycleResponse, error)
+
+	// ListBucketObjectsWithResponse List the objects in a bucket
+	//
+	// Lists the objects under `prefix`, or every object when it is omitted, in key order. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects (the `ListBucketObjects` operationId).
+	ListBucketObjectsWithResponse(ctx context.Context, id string, params *ListBucketObjectsParams, reqEditors ...RequestEditorFn) (*ListBucketObjectsResponse, error)
+
+	// ListBucketDeletedObjectsWithResponse List deleted objects that can still be recovered
+	//
+	// Lists the keys whose current version is a delete marker, under `prefix` or across the bucket: deleted, with earlier versions still held. Each row is that delete marker. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/deleted (the `ListBucketDeletedObjects` operationId).
+	ListBucketDeletedObjectsWithResponse(ctx context.Context, id string, params *ListBucketDeletedObjectsParams, reqEditors ...RequestEditorFn) (*ListBucketDeletedObjectsResponse, error)
+
+	// CreateObjectDownloadUrlWithBodyWithResponse Mint a short-lived URL that downloads one object
+	//
+	// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+	CreateObjectDownloadUrlWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateObjectDownloadUrlResponse, error)
+
+	// CreateObjectDownloadUrlWithResponse Mint a short-lived URL that downloads one object
+	//
+	// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+	CreateObjectDownloadUrlWithResponse(ctx context.Context, id string, body CreateObjectDownloadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateObjectDownloadUrlResponse, error)
+
+	// GetBucketObjectMetadataWithResponse Get one object's metadata, tags and retention
+	//
+	// Reads the current version's content headers, user metadata, tags and object-lock retention. 404 for a missing key, and for an object whose current version is a delete marker.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/metadata (the `GetBucketObjectMetadata` operationId).
+	GetBucketObjectMetadataWithResponse(ctx context.Context, id string, params *GetBucketObjectMetadataParams, reqEditors ...RequestEditorFn) (*GetBucketObjectMetadataResponse, error)
+
+	// CreateObjectUploadUrlWithBodyWithResponse Mint a short-lived URL that uploads one new object
+	//
+	// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+	CreateObjectUploadUrlWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateObjectUploadUrlResponse, error)
+
+	// CreateObjectUploadUrlWithResponse Mint a short-lived URL that uploads one new object
+	//
+	// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+	CreateObjectUploadUrlWithResponse(ctx context.Context, id string, body CreateObjectUploadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateObjectUploadUrlResponse, error)
+
+	// ListBucketObjectVersionsWithResponse List the versions of one object
+	//
+	// Lists every version of exactly one key, delete markers included: the current version first, then newest first. A bucket that was never versioned lists one entry with a null versionId. Cursor-paginated; a version written between two pages can list the version it replaced again, now as noncurrent, and when the newest versions are permanently deleted between pages, the version that becomes current can be skipped. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/objects/versions (the `ListBucketObjectVersions` operationId).
+	ListBucketObjectVersionsWithResponse(ctx context.Context, id string, params *ListBucketObjectVersionsParams, reqEditors ...RequestEditorFn) (*ListBucketObjectVersionsResponse, error)
+
+	// GetBucketProtectionWithResponse A bucket's object lock and default encryption
+	//
+	// Read-only: object lock is chosen when the bucket is ordered.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/buckets/{id}/protection (the `GetBucketProtection` operationId).
+	GetBucketProtectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketProtectionResponse, error)
+
 	// GetBucketUsageWithResponse A bucket's storage usage and traffic over a window
 	//
 	// Not the billing basis — egress is billed differently. See the field docs.
@@ -20205,6 +21623,919 @@ func (r DeleteBucketResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r DeleteBucketResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBucketCorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketCorsDto
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBucketCorsResponse) GetJSON200() *PublicBucketCorsDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetBucketCorsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetBucketCorsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBucketCorsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetBucketCorsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetBucketCorsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBucketCorsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBucketCorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBucketCorsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBucketCorsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ReplaceBucketCorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketCorsDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ReplaceBucketCorsResponse) GetJSON200() *PublicBucketCorsDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON409() *ProblemDetail {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ReplaceBucketCorsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ReplaceBucketCorsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceBucketCorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceBucketCorsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReplaceBucketCorsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBucketLifecycleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketLifecycleDto
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBucketLifecycleResponse) GetJSON200() *PublicBucketLifecycleDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetBucketLifecycleResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetBucketLifecycleResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBucketLifecycleResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetBucketLifecycleResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetBucketLifecycleResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBucketLifecycleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBucketLifecycleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBucketLifecycleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBucketLifecycleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ReplaceBucketLifecycleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketLifecycleDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ReplaceBucketLifecycleResponse) GetJSON200() *PublicBucketLifecycleDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON409() *ProblemDetail {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ReplaceBucketLifecycleResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ReplaceBucketLifecycleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceBucketLifecycleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceBucketLifecycleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReplaceBucketLifecycleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListBucketObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CursorPagePublicBucketObjectDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBucketObjectsResponse) GetJSON200() *CursorPagePublicBucketObjectDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ListBucketObjectsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBucketObjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBucketObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBucketObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBucketObjectsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListBucketDeletedObjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CursorPagePublicBucketObjectVersionDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBucketDeletedObjectsResponse) GetJSON200() *CursorPagePublicBucketObjectVersionDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ListBucketDeletedObjectsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBucketDeletedObjectsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBucketDeletedObjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBucketDeletedObjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBucketDeletedObjectsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateObjectDownloadUrlResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicObjectDownloadUrlDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateObjectDownloadUrlResponse) GetJSON200() *PublicObjectDownloadUrlDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r CreateObjectDownloadUrlResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateObjectDownloadUrlResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateObjectDownloadUrlResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateObjectDownloadUrlResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateObjectDownloadUrlResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBucketObjectMetadataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketObjectMetadataDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBucketObjectMetadataResponse) GetJSON200() *PublicBucketObjectMetadataDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetBucketObjectMetadataResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBucketObjectMetadataResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBucketObjectMetadataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBucketObjectMetadataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBucketObjectMetadataResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateObjectUploadUrlResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicObjectUploadUrlDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateObjectUploadUrlResponse) GetJSON200() *PublicObjectUploadUrlDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON409() *ProblemDetail {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r CreateObjectUploadUrlResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateObjectUploadUrlResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateObjectUploadUrlResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateObjectUploadUrlResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateObjectUploadUrlResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListBucketObjectVersionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CursorPagePublicBucketObjectVersionDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBucketObjectVersionsResponse) GetJSON200() *CursorPagePublicBucketObjectVersionDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r ListBucketObjectVersionsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBucketObjectVersionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBucketObjectVersionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBucketObjectVersionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBucketObjectVersionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBucketProtectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicBucketProtectionDto
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBucketProtectionResponse) GetJSON200() *PublicBucketProtectionDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetBucketProtectionResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetBucketProtectionResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBucketProtectionResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetBucketProtectionResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetBucketProtectionResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBucketProtectionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBucketProtectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBucketProtectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBucketProtectionResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -30986,6 +33317,231 @@ func (c *ClientWithResponses) DeleteBucketWithResponse(ctx context.Context, id s
 	return ParseDeleteBucketResponse(rsp)
 }
 
+// GetBucketCorsWithResponse A bucket's CORS rules
+//
+// Read live from the storage cluster.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/cors (the `GetBucketCors` operationId).
+func (c *ClientWithResponses) GetBucketCorsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketCorsResponse, error) {
+	rsp, err := c.GetBucketCors(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBucketCorsResponse(rsp)
+}
+
+// ReplaceBucketCorsWithBodyWithResponse Replace a bucket's CORS rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+func (c *ClientWithResponses) ReplaceBucketCorsWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceBucketCorsResponse, error) {
+	rsp, err := c.ReplaceBucketCorsWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceBucketCorsResponse(rsp)
+}
+
+// ReplaceBucketCorsWithResponse Replace a bucket's CORS rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /cors returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. No step-up. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/buckets/{id}/cors (the `ReplaceBucketCors` operationId).
+func (c *ClientWithResponses) ReplaceBucketCorsWithResponse(ctx context.Context, id string, body ReplaceBucketCorsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceBucketCorsResponse, error) {
+	rsp, err := c.ReplaceBucketCors(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceBucketCorsResponse(rsp)
+}
+
+// GetBucketLifecycleWithResponse A bucket's lifecycle rules
+//
+// Read live from the storage cluster. `unsupported` means the bucket also holds rules this API cannot represent.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/lifecycle (the `GetBucketLifecycle` operationId).
+func (c *ClientWithResponses) GetBucketLifecycleWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketLifecycleResponse, error) {
+	rsp, err := c.GetBucketLifecycle(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBucketLifecycleResponse(rsp)
+}
+
+// ReplaceBucketLifecycleWithBodyWithResponse Replace a bucket's lifecycle rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+func (c *ClientWithResponses) ReplaceBucketLifecycleWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceBucketLifecycleResponse, error) {
+	rsp, err := c.ReplaceBucketLifecycleWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceBucketLifecycleResponse(rsp)
+}
+
+// ReplaceBucketLifecycleWithResponse Replace a bucket's lifecycle rules
+//
+// Replaces every rule with `rules`; an empty list removes them all. Send the `rules` GET /lifecycle returned as `basedOn`: the save is a 409 when the stored rules differ, including when `basedOn` is omitted and the bucket has rules. `replaceUnsupported` skips that check and replaces whatever is stored, rules this API cannot represent included. Step-up applies when any rule is enabled or `replaceUnsupported` is set: a personal access token then also needs a paired client. Returns the rules as stored. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/buckets/{id}/lifecycle (the `ReplaceBucketLifecycle` operationId).
+func (c *ClientWithResponses) ReplaceBucketLifecycleWithResponse(ctx context.Context, id string, body ReplaceBucketLifecycleJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceBucketLifecycleResponse, error) {
+	rsp, err := c.ReplaceBucketLifecycle(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceBucketLifecycleResponse(rsp)
+}
+
+// ListBucketObjectsWithResponse List the objects in a bucket
+//
+// Lists the objects under `prefix`, or every object when it is omitted, in key order. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/objects (the `ListBucketObjects` operationId).
+func (c *ClientWithResponses) ListBucketObjectsWithResponse(ctx context.Context, id string, params *ListBucketObjectsParams, reqEditors ...RequestEditorFn) (*ListBucketObjectsResponse, error) {
+	rsp, err := c.ListBucketObjects(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBucketObjectsResponse(rsp)
+}
+
+// ListBucketDeletedObjectsWithResponse List deleted objects that can still be recovered
+//
+// Lists the keys whose current version is a delete marker, under `prefix` or across the bucket: deleted, with earlier versions still held. Each row is that delete marker. Cursor-paginated. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/objects/deleted (the `ListBucketDeletedObjects` operationId).
+func (c *ClientWithResponses) ListBucketDeletedObjectsWithResponse(ctx context.Context, id string, params *ListBucketDeletedObjectsParams, reqEditors ...RequestEditorFn) (*ListBucketDeletedObjectsResponse, error) {
+	rsp, err := c.ListBucketDeletedObjects(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBucketDeletedObjectsResponse(rsp)
+}
+
+// CreateObjectDownloadUrlWithBodyWithResponse Mint a short-lived URL that downloads one object
+//
+// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+func (c *ClientWithResponses) CreateObjectDownloadUrlWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateObjectDownloadUrlResponse, error) {
+	rsp, err := c.CreateObjectDownloadUrlWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateObjectDownloadUrlResponse(rsp)
+}
+
+// CreateObjectDownloadUrlWithResponse Mint a short-lived URL that downloads one object
+//
+// Returns a URL that downloads the object, or the earlier version `versionId` names, with no further credentials until `expiresAt` — about a minute. Treat it as a secret while it lives. 404 for a missing key, an unknown version id, or a delete marker's. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/buckets/{id}/objects/download-url (the `CreateObjectDownloadUrl` operationId).
+func (c *ClientWithResponses) CreateObjectDownloadUrlWithResponse(ctx context.Context, id string, body CreateObjectDownloadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateObjectDownloadUrlResponse, error) {
+	rsp, err := c.CreateObjectDownloadUrl(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateObjectDownloadUrlResponse(rsp)
+}
+
+// GetBucketObjectMetadataWithResponse Get one object's metadata, tags and retention
+//
+// Reads the current version's content headers, user metadata, tags and object-lock retention. 404 for a missing key, and for an object whose current version is a delete marker.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/objects/metadata (the `GetBucketObjectMetadata` operationId).
+func (c *ClientWithResponses) GetBucketObjectMetadataWithResponse(ctx context.Context, id string, params *GetBucketObjectMetadataParams, reqEditors ...RequestEditorFn) (*GetBucketObjectMetadataResponse, error) {
+	rsp, err := c.GetBucketObjectMetadata(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBucketObjectMetadataResponse(rsp)
+}
+
+// CreateObjectUploadUrlWithBodyWithResponse Mint a short-lived URL that uploads one new object
+//
+// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+func (c *ClientWithResponses) CreateObjectUploadUrlWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateObjectUploadUrlResponse, error) {
+	rsp, err := c.CreateObjectUploadUrlWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateObjectUploadUrlResponse(rsp)
+}
+
+// CreateObjectUploadUrlWithResponse Mint a short-lived URL that uploads one new object
+//
+// Returns a URL to PUT the bytes of one new object to, valid until `expiresAt`. The PUT must send every header in `headers` exactly as given, because they are signed into the URL, and must send exactly `contentLength` bytes, at most 25 MiB. A key that already exists is refused: when the URL is minted on a bucket with versioning on, and by the PUT itself otherwise, because the URL signs `If-None-Match: *`. On a bucket with versioning on, a write to the key after the mint, this URL's included, becomes a new version and keeps the earlier one as noncurrent. For larger files or an overwrite, use an S3 client with a bucket key. An Idempotency-Key on this call replays an empty 200, not the URL: mint again without one. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/buckets/{id}/objects/upload-url (the `CreateObjectUploadUrl` operationId).
+func (c *ClientWithResponses) CreateObjectUploadUrlWithResponse(ctx context.Context, id string, body CreateObjectUploadUrlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateObjectUploadUrlResponse, error) {
+	rsp, err := c.CreateObjectUploadUrl(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateObjectUploadUrlResponse(rsp)
+}
+
+// ListBucketObjectVersionsWithResponse List the versions of one object
+//
+// Lists every version of exactly one key, delete markers included: the current version first, then newest first. A bucket that was never versioned lists one entry with a null versionId. Cursor-paginated; a version written between two pages can list the version it replaced again, now as noncurrent, and when the newest versions are permanently deleted between pages, the version that becomes current can be skipped. Follow nextCursor until it is null; a page can be short or even empty while more follow, so never infer the end from a page's size.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/objects/versions (the `ListBucketObjectVersions` operationId).
+func (c *ClientWithResponses) ListBucketObjectVersionsWithResponse(ctx context.Context, id string, params *ListBucketObjectVersionsParams, reqEditors ...RequestEditorFn) (*ListBucketObjectVersionsResponse, error) {
+	rsp, err := c.ListBucketObjectVersions(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBucketObjectVersionsResponse(rsp)
+}
+
+// GetBucketProtectionWithResponse A bucket's object lock and default encryption
+//
+// Read-only: object lock is chosen when the bucket is ordered.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/buckets/{id}/protection (the `GetBucketProtection` operationId).
+func (c *ClientWithResponses) GetBucketProtectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBucketProtectionResponse, error) {
+	rsp, err := c.GetBucketProtection(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBucketProtectionResponse(rsp)
+}
+
 // GetBucketUsageWithResponse A bucket's storage usage and traffic over a window
 //
 // Not the billing basis — egress is billed differently. See the field docs.
@@ -35501,6 +38057,754 @@ func ParseDeleteBucketResponse(rsp *http.Response) (*DeleteBucketResponse, error
 			headers.Location = &value
 		}
 		response.Headers202 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetBucketCorsResponse parses an HTTP response from a GetBucketCorsWithResponse call
+func ParseGetBucketCorsResponse(rsp *http.Response) (*GetBucketCorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBucketCorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketCorsDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReplaceBucketCorsResponse parses an HTTP response from a ReplaceBucketCorsWithResponse call
+func ParseReplaceBucketCorsResponse(rsp *http.Response) (*ReplaceBucketCorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceBucketCorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketCorsDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBucketLifecycleResponse parses an HTTP response from a GetBucketLifecycleWithResponse call
+func ParseGetBucketLifecycleResponse(rsp *http.Response) (*GetBucketLifecycleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBucketLifecycleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketLifecycleDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReplaceBucketLifecycleResponse parses an HTTP response from a ReplaceBucketLifecycleWithResponse call
+func ParseReplaceBucketLifecycleResponse(rsp *http.Response) (*ReplaceBucketLifecycleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceBucketLifecycleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketLifecycleDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBucketObjectsResponse parses an HTTP response from a ListBucketObjectsWithResponse call
+func ParseListBucketObjectsResponse(rsp *http.Response) (*ListBucketObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBucketObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CursorPagePublicBucketObjectDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBucketDeletedObjectsResponse parses an HTTP response from a ListBucketDeletedObjectsWithResponse call
+func ParseListBucketDeletedObjectsResponse(rsp *http.Response) (*ListBucketDeletedObjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBucketDeletedObjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CursorPagePublicBucketObjectVersionDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateObjectDownloadUrlResponse parses an HTTP response from a CreateObjectDownloadUrlWithResponse call
+func ParseCreateObjectDownloadUrlResponse(rsp *http.Response) (*CreateObjectDownloadUrlResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateObjectDownloadUrlResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicObjectDownloadUrlDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBucketObjectMetadataResponse parses an HTTP response from a GetBucketObjectMetadataWithResponse call
+func ParseGetBucketObjectMetadataResponse(rsp *http.Response) (*GetBucketObjectMetadataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBucketObjectMetadataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketObjectMetadataDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateObjectUploadUrlResponse parses an HTTP response from a CreateObjectUploadUrlWithResponse call
+func ParseCreateObjectUploadUrlResponse(rsp *http.Response) (*CreateObjectUploadUrlResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateObjectUploadUrlResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicObjectUploadUrlDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBucketObjectVersionsResponse parses an HTTP response from a ListBucketObjectVersionsWithResponse call
+func ParseListBucketObjectVersionsResponse(rsp *http.Response) (*ListBucketObjectVersionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBucketObjectVersionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CursorPagePublicBucketObjectVersionDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBucketProtectionResponse parses an HTTP response from a GetBucketProtectionWithResponse call
+func ParseGetBucketProtectionResponse(rsp *http.Response) (*GetBucketProtectionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBucketProtectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicBucketProtectionDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
 	}
 
 	return response, nil

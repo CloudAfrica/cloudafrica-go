@@ -187,6 +187,22 @@ type transport struct {
 	sem chan struct{}
 }
 
+// mintsCredential reports whether req mints a short-lived URL or token, the
+// routes that must not carry an Idempotency-Key.
+func mintsCredential(req *http.Request) bool {
+	if req.Method != http.MethodPost {
+		return false
+	}
+	p := req.URL.Path
+	switch {
+	case strings.HasPrefix(p, "/v1/buckets/"):
+		return strings.HasSuffix(p, "/objects/download-url") || strings.HasSuffix(p, "/objects/upload-url")
+	case strings.HasPrefix(p, "/v1/kubernetes/clusters/"):
+		return strings.HasSuffix(p, "/token")
+	}
+	return false
+}
+
 func isWrite(method string) bool {
 	switch method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
@@ -211,9 +227,11 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		}
 	}
 
-	// One key per logical write, shared by every retry of it.
+	// One key per logical write, shared by every retry of it. Not on a mint:
+	// the API replays an empty 200 for a repeated key, so a retry after a lost
+	// reply would return no URL or token. Minting again without a key is safe.
 	key := req.Header.Get("Idempotency-Key")
-	if key == "" && isWrite(req.Method) {
+	if key == "" && isWrite(req.Method) && !mintsCredential(req) {
 		key = uuid.NewString()
 	}
 
