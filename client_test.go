@@ -886,6 +886,37 @@ func TestIdempotencyKeyByMethod(t *testing.T) {
 	}
 }
 
+func TestMintRoutesCarryNoIdempotencyKey(t *testing.T) {
+	for _, route := range []string{"buckets/b1/objects/download-url", "buckets/b1/objects/upload-url", "kubernetes/clusters/c1/token"} {
+		var mu sync.Mutex
+		var keys []string
+		c, _, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			keys = append(keys, r.Header.Get("Idempotency-Key"))
+			n := len(keys)
+			mu.Unlock()
+			if n == 1 {
+				problem(w, http.StatusServiceUnavailable, "https://x/problems/unavailable", "down")
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{}`))
+		})
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/"+route, strings.NewReader(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := c.http.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if len(keys) != 2 || keys[0] != "" || keys[1] != "" {
+			t.Errorf("%s: keys = %q, want two attempts and no Idempotency-Key", route, keys)
+		}
+	}
+}
+
 type failingTransport struct{ fails int32 }
 
 func (f *failingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
