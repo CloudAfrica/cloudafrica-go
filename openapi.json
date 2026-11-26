@@ -2,6 +2,25 @@
   "openapi": "3.1.0",
   "components": {
     "schemas": {
+      "Clash": {
+        "type": "object",
+        "description": "A name more than one VM or virtual IP claims.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name."
+          },
+          "zone": {
+            "type": "string",
+            "description": "The zone."
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many claim it."
+          }
+        }
+      },
       "Cpu": {
         "type": "object",
         "properties": {
@@ -513,6 +532,36 @@
           "sizeGb": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "DnsRecord": {
+        "type": "object",
+        "description": "A name guests resolve.",
+        "properties": {
+          "zone": {
+            "type": "string",
+            "description": "The zone the name is in."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name."
+          },
+          "type": {
+            "type": "string",
+            "description": "The record type."
+          },
+          "ttl": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Time to live, in seconds."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The record's values."
           }
         }
       },
@@ -2908,7 +2957,7 @@
           },
           "versioning": {
             "type": "string",
-            "description": "Versioning at creation, off / enabled / suspended; absent leaves Croit's default.",
+            "description": "Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.",
             "enum": [
               "off",
               "enabled",
@@ -3900,6 +3949,77 @@
           }
         }
       },
+      "PublicVpcInternalDnsDto": {
+        "description": "A VPC's internal DNS: whether it is on, whether it is serving, and the names it answers.",
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "One of off, setting_up, active, not_serving and winding_down. winding_down is what turning it off passes through: names keep resolving until drainingUntil."
+          },
+          "reason": {
+            "type": "string",
+            "description": "The last failed check's code, present with not_serving and sometimes with setting_up or winding_down; absent otherwise."
+          },
+          "reasonDetail": {
+            "type": "string",
+            "description": "The reason in a sentence, absent when reason is."
+          },
+          "guestsUseResolver": {
+            "type": "boolean",
+            "description": "False when the VPC sets DNS servers of its own: guests then never ask the resolver."
+          },
+          "resolverAddresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The resolver addresses guests are given."
+          },
+          "drainingUntil": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2022-03-10T16:15:50Z"
+            ],
+            "description": "When a VPC that has stopped being served stops resolving (ISO 8601 UTC), if it is draining."
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DnsRecord"
+            },
+            "description": "The names guests resolve."
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Skipped"
+            },
+            "description": "VMs and virtual IPs left out of the zone, and why."
+          },
+          "clashes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Clash"
+            },
+            "description": "Names that more than one VM or virtual IP claims, after lowercasing."
+          }
+        }
+      },
+      "PublicVpcInternalDnsRequest": {
+        "description": "Whether internal DNS is on for the VPC.",
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "true turns internal DNS on, false turns it off."
+          }
+        }
+      },
       "PublicVpcRenameRequest": {
         "description": "A VPC rename.",
         "type": "object",
@@ -3998,6 +4118,20 @@
           "keepYearly": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "Skipped": {
+        "type": "object",
+        "description": "A VM or virtual IP left out of the zone.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name it was given, which is not a valid DNS name; absent when it has no name."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why it was left out: invalid_name or no_name."
           }
         }
       },
@@ -21952,6 +22086,359 @@
           {
             "ApiToken": [
               "read:network"
+            ]
+          }
+        ]
+      }
+    },
+    "/v1/vpcs/{id}/internal-dns": {
+      "put": {
+        "summary": "Turn a VPC's internal DNS on or off",
+        "description": "Send {\"enabled\": true} to turn it on or {\"enabled\": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.",
+        "operationId": "setVpcInternalDns",
+        "tags": [
+          "VPCs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicVpcInternalDnsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVpcInternalDnsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "write:network"
+            ]
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get a VPC's internal DNS",
+        "description": "Whether internal DNS is on for the VPC, whether it is serving, and the names its VMs and virtual IPs resolve. 503 when the platform cannot be asked right now.",
+        "operationId": "getVpcInternalDns",
+        "tags": [
+          "VPCs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVpcInternalDnsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "read:network"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Turn a VPC's internal DNS off",
+        "description": "The same as PUT with {\"enabled\": false}: a drain, not a cut. The answer is the state, winding_down for a VPC that had been served.",
+        "operationId": "deleteVpcInternalDns",
+        "tags": [
+          "VPCs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVpcInternalDnsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "RateLimited": {
+                    "$ref": "#/components/examples/RateLimited"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                },
+                "examples": {
+                  "InternalError": {
+                    "$ref": "#/components/examples/InternalError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiToken": [
+              "write:network"
             ]
           }
         ]
