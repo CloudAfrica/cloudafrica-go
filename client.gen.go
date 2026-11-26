@@ -450,6 +450,18 @@ func (e PublicVipFirewallReadOnlyReason) Valid() bool {
 	}
 }
 
+// Clash A name more than one VM or virtual IP claims.
+type Clash struct {
+	// Count How many claim it.
+	Count *int32 `json:"count,omitempty"`
+
+	// Name The name.
+	Name *string `json:"name,omitempty"`
+
+	// Zone The zone.
+	Zone *string `json:"zone,omitempty"`
+}
+
 // Cpu defines model for Cpu.
 type Cpu struct {
 	Cores *int32 `json:"cores,omitempty"`
@@ -676,6 +688,24 @@ type Disk struct {
 // Disk1 defines model for Disk1.
 type Disk1 struct {
 	SizeGb *int32 `json:"sizeGb,omitempty"`
+}
+
+// DnsRecord A name guests resolve.
+type DnsRecord struct {
+	// Name The name.
+	Name *string `json:"name,omitempty"`
+
+	// Ttl Time to live, in seconds.
+	Ttl *int32 `json:"ttl,omitempty"`
+
+	// Type The record type.
+	Type *string `json:"type,omitempty"`
+
+	// Values The record's values.
+	Values *[]string `json:"values,omitempty"`
+
+	// Zone The zone the name is in.
+	Zone *string `json:"zone,omitempty"`
 }
 
 // Failure defines model for Failure.
@@ -2092,11 +2122,11 @@ type PublicOrderBucketRequest struct {
 	// ObjectLock Enable S3 object lock. Write-once: a bucket ordered without it can never be locked afterwards.
 	ObjectLock *bool `json:"objectLock,omitempty"`
 
-	// Versioning Versioning at creation, off / enabled / suspended; absent leaves Croit's default.
+	// Versioning Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.
 	Versioning *PublicOrderBucketRequestVersioning `json:"versioning,omitempty"`
 }
 
-// PublicOrderBucketRequestVersioning Versioning at creation, off / enabled / suspended; absent leaves Croit's default.
+// PublicOrderBucketRequestVersioning Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.
 type PublicOrderBucketRequestVersioning string
 
 // PublicOsImageDto An operating-system image a virtual machine can be created from.
@@ -2703,6 +2733,44 @@ type PublicVpcDto struct {
 	Status *string `json:"status,omitempty"`
 }
 
+// PublicVpcInternalDnsDto A VPC's internal DNS: whether it is on, whether it is serving, and the names it answers.
+type PublicVpcInternalDnsDto struct {
+	// Clashes Names that more than one VM or virtual IP claims, after lowercasing.
+	Clashes *[]Clash `json:"clashes,omitempty"`
+
+	// DrainingUntil When a VPC that has stopped being served stops resolving (ISO 8601 UTC), if it is draining.
+	//
+	// Examples: 2022-03-10T16:15:50Z
+	DrainingUntil *time.Time `json:"drainingUntil,omitempty"`
+
+	// GuestsUseResolver False when the VPC sets DNS servers of its own: guests then never ask the resolver.
+	GuestsUseResolver *bool `json:"guestsUseResolver,omitempty"`
+
+	// Reason The last failed check's code, present with not_serving and sometimes with setting_up or winding_down; absent otherwise.
+	Reason *string `json:"reason,omitempty"`
+
+	// ReasonDetail The reason in a sentence, absent when reason is.
+	ReasonDetail *string `json:"reasonDetail,omitempty"`
+
+	// Records The names guests resolve.
+	Records *[]DnsRecord `json:"records,omitempty"`
+
+	// ResolverAddresses The resolver addresses guests are given.
+	ResolverAddresses *[]string `json:"resolverAddresses,omitempty"`
+
+	// Skipped VMs and virtual IPs left out of the zone, and why.
+	Skipped *[]Skipped `json:"skipped,omitempty"`
+
+	// State One of off, setting_up, active, not_serving and winding_down. winding_down is what turning it off passes through: names keep resolving until drainingUntil.
+	State *string `json:"state,omitempty"`
+}
+
+// PublicVpcInternalDnsRequest Whether internal DNS is on for the VPC.
+type PublicVpcInternalDnsRequest struct {
+	// Enabled true turns internal DNS on, false turns it off.
+	Enabled bool `json:"enabled"`
+}
+
 // PublicVpcRenameRequest A VPC rename.
 type PublicVpcRenameRequest struct {
 	// Name The new display name.
@@ -2739,6 +2807,15 @@ type Retention1 struct {
 	KeepMonthly *int32 `json:"keepMonthly,omitempty"`
 	KeepWeekly  *int32 `json:"keepWeekly,omitempty"`
 	KeepYearly  *int32 `json:"keepYearly,omitempty"`
+}
+
+// Skipped A VM or virtual IP left out of the zone.
+type Skipped struct {
+	// Name The name it was given, which is not a valid DNS name; absent when it has no name.
+	Name *string `json:"name,omitempty"`
+
+	// Reason Why it was left out: invalid_name or no_name.
+	Reason *string `json:"reason,omitempty"`
 }
 
 // Status defines model for Status.
@@ -3457,6 +3534,9 @@ type CreateVpcJSONRequestBody = PublicVpcCreateRequest
 
 // UpdateVpcJSONRequestBody defines body for UpdateVpc for application/json ContentType.
 type UpdateVpcJSONRequestBody = PublicVpcRenameRequest
+
+// SetVpcInternalDnsJSONRequestBody defines body for SetVpcInternalDns for application/json ContentType.
+type SetVpcInternalDnsJSONRequestBody = PublicVpcInternalDnsRequest
 
 // CreateVpcVipFirewallRuleJSONRequestBody defines body for CreateVpcVipFirewallRule for application/json ContentType.
 type CreateVpcVipFirewallRuleJSONRequestBody = PublicFirewallRuleRequest
@@ -5075,6 +5155,38 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /v1/vpcs/{id}/firewall-rules (the `ListVpcFirewallRules` operationId).
 	ListVpcFirewallRules(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteVpcInternalDns Turn a VPC's internal DNS off
+	//
+	// The same as PUT with {"enabled": false}: a drain, not a cut. The answer is the state, winding_down for a VPC that had been served.
+	//
+	// Corresponds with DELETE /v1/vpcs/{id}/internal-dns (the `DeleteVpcInternalDns` operationId).
+	DeleteVpcInternalDns(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetVpcInternalDns Get a VPC's internal DNS
+	//
+	// Whether internal DNS is on for the VPC, whether it is serving, and the names its VMs and virtual IPs resolve. 503 when the platform cannot be asked right now.
+	//
+	// Corresponds with GET /v1/vpcs/{id}/internal-dns (the `GetVpcInternalDns` operationId).
+	GetVpcInternalDns(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetVpcInternalDnsWithBody Turn a VPC's internal DNS on or off
+	//
+	// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+	SetVpcInternalDnsWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetVpcInternalDns Turn a VPC's internal DNS on or off
+	//
+	// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+	SetVpcInternalDns(ctx context.Context, id string, body SetVpcInternalDnsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListVpcReservedIps List the account's reserved public IPs
 	//
@@ -8689,6 +8801,78 @@ func (c *Gen) UpdateVpc(ctx context.Context, id string, body UpdateVpcJSONReques
 // Corresponds with GET /v1/vpcs/{id}/firewall-rules (the `ListVpcFirewallRules` operationId).
 func (c *Gen) ListVpcFirewallRules(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListVpcFirewallRulesRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteVpcInternalDns Turn a VPC's internal DNS off
+//
+// The same as PUT with {"enabled": false}: a drain, not a cut. The answer is the state, winding_down for a VPC that had been served.
+//
+// Corresponds with DELETE /v1/vpcs/{id}/internal-dns (the `DeleteVpcInternalDns` operationId).
+func (c *Gen) DeleteVpcInternalDns(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteVpcInternalDnsRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetVpcInternalDns Get a VPC's internal DNS
+//
+// Whether internal DNS is on for the VPC, whether it is serving, and the names its VMs and virtual IPs resolve. 503 when the platform cannot be asked right now.
+//
+// Corresponds with GET /v1/vpcs/{id}/internal-dns (the `GetVpcInternalDns` operationId).
+func (c *Gen) GetVpcInternalDns(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetVpcInternalDnsRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetVpcInternalDnsWithBody Turn a VPC's internal DNS on or off
+//
+// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+func (c *Gen) SetVpcInternalDnsWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetVpcInternalDnsRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetVpcInternalDns Turn a VPC's internal DNS on or off
+//
+// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+func (c *Gen) SetVpcInternalDns(ctx context.Context, id string, body SetVpcInternalDnsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetVpcInternalDnsRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -16476,6 +16660,121 @@ func NewListVpcFirewallRulesRequest(server string, id string) (*http.Request, er
 	return req, nil
 }
 
+// NewDeleteVpcInternalDnsRequest constructs an http.Request for the DeleteVpcInternalDns method
+func NewDeleteVpcInternalDnsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/vpcs/%s/internal-dns", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetVpcInternalDnsRequest constructs an http.Request for the GetVpcInternalDns method
+func NewGetVpcInternalDnsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/vpcs/%s/internal-dns", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetVpcInternalDnsRequest calls the generic SetVpcInternalDns builder with application/json body
+func NewSetVpcInternalDnsRequest(server string, id string, body SetVpcInternalDnsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetVpcInternalDnsRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewSetVpcInternalDnsRequestWithBody constructs an http.Request for the SetVpcInternalDns method, with any body, and a specified content type
+func NewSetVpcInternalDnsRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/vpcs/%s/internal-dns", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListVpcReservedIpsRequest constructs an http.Request for the ListVpcReservedIps method
 func NewListVpcReservedIpsRequest(server string, id string, params *ListVpcReservedIpsParams) (*http.Request, error) {
 	var err error
@@ -18872,6 +19171,42 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /v1/vpcs/{id}/firewall-rules (the `ListVpcFirewallRules` operationId).
 	ListVpcFirewallRulesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*ListVpcFirewallRulesResponse, error)
+
+	// DeleteVpcInternalDnsWithResponse Turn a VPC's internal DNS off
+	//
+	// The same as PUT with {"enabled": false}: a drain, not a cut. The answer is the state, winding_down for a VPC that had been served.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /v1/vpcs/{id}/internal-dns (the `DeleteVpcInternalDns` operationId).
+	DeleteVpcInternalDnsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteVpcInternalDnsResponse, error)
+
+	// GetVpcInternalDnsWithResponse Get a VPC's internal DNS
+	//
+	// Whether internal DNS is on for the VPC, whether it is serving, and the names its VMs and virtual IPs resolve. 503 when the platform cannot be asked right now.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/vpcs/{id}/internal-dns (the `GetVpcInternalDns` operationId).
+	GetVpcInternalDnsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetVpcInternalDnsResponse, error)
+
+	// SetVpcInternalDnsWithBodyWithResponse Turn a VPC's internal DNS on or off
+	//
+	// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+	SetVpcInternalDnsWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetVpcInternalDnsResponse, error)
+
+	// SetVpcInternalDnsWithResponse Turn a VPC's internal DNS on or off
+	//
+	// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+	SetVpcInternalDnsWithResponse(ctx context.Context, id string, body SetVpcInternalDnsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetVpcInternalDnsResponse, error)
 
 	// ListVpcReservedIpsWithResponse List the account's reserved public IPs
 	//
@@ -31652,6 +31987,269 @@ func (r ListVpcFirewallRulesResponse) ContentType() string {
 	return ""
 }
 
+type DeleteVpcInternalDnsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicVpcInternalDnsDto
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DeleteVpcInternalDnsResponse) GetJSON200() *PublicVpcInternalDnsDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r DeleteVpcInternalDnsResponse) GetApplicationproblemJSON503() *ProblemDetail {
+	return r.ApplicationproblemJSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteVpcInternalDnsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteVpcInternalDnsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteVpcInternalDnsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteVpcInternalDnsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetVpcInternalDnsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicVpcInternalDnsDto
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetVpcInternalDnsResponse) GetJSON200() *PublicVpcInternalDnsDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r GetVpcInternalDnsResponse) GetApplicationproblemJSON503() *ProblemDetail {
+	return r.ApplicationproblemJSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetVpcInternalDnsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetVpcInternalDnsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetVpcInternalDnsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetVpcInternalDnsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetVpcInternalDnsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicVpcInternalDnsDto
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *ProblemDetail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *ProblemDetail
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *ProblemDetail
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *ProblemDetail
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *ProblemDetail
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *ProblemDetail
+	// ApplicationproblemJSON500 the response for an HTTP 500 `application/problem+json` response
+	ApplicationproblemJSON500 *ProblemDetail
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *ProblemDetail
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetVpcInternalDnsResponse) GetJSON200() *PublicVpcInternalDnsDto {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON400() *ProblemDetail {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON401() *ProblemDetail {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON403() *ProblemDetail {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON404() *ProblemDetail {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON409() *ProblemDetail {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON429() *ProblemDetail {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON500 returns the response for an HTTP 500 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON500() *ProblemDetail {
+	return r.ApplicationproblemJSON500
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r SetVpcInternalDnsResponse) GetApplicationproblemJSON503() *ProblemDetail {
+	return r.ApplicationproblemJSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r SetVpcInternalDnsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetVpcInternalDnsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetVpcInternalDnsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetVpcInternalDnsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListVpcReservedIpsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -35656,6 +36254,66 @@ func (c *ClientWithResponses) ListVpcFirewallRulesWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseListVpcFirewallRulesResponse(rsp)
+}
+
+// DeleteVpcInternalDnsWithResponse Turn a VPC's internal DNS off
+//
+// The same as PUT with {"enabled": false}: a drain, not a cut. The answer is the state, winding_down for a VPC that had been served.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /v1/vpcs/{id}/internal-dns (the `DeleteVpcInternalDns` operationId).
+func (c *ClientWithResponses) DeleteVpcInternalDnsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteVpcInternalDnsResponse, error) {
+	rsp, err := c.DeleteVpcInternalDns(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteVpcInternalDnsResponse(rsp)
+}
+
+// GetVpcInternalDnsWithResponse Get a VPC's internal DNS
+//
+// Whether internal DNS is on for the VPC, whether it is serving, and the names its VMs and virtual IPs resolve. 503 when the platform cannot be asked right now.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/vpcs/{id}/internal-dns (the `GetVpcInternalDns` operationId).
+func (c *ClientWithResponses) GetVpcInternalDnsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetVpcInternalDnsResponse, error) {
+	rsp, err := c.GetVpcInternalDns(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetVpcInternalDnsResponse(rsp)
+}
+
+// SetVpcInternalDnsWithBodyWithResponse Turn a VPC's internal DNS on or off
+//
+// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+func (c *ClientWithResponses) SetVpcInternalDnsWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetVpcInternalDnsResponse, error) {
+	rsp, err := c.SetVpcInternalDnsWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetVpcInternalDnsResponse(rsp)
+}
+
+// SetVpcInternalDnsWithResponse Turn a VPC's internal DNS on or off
+//
+// Send {"enabled": true} to turn it on or {"enabled": false} to turn it off; repeating the same request changes nothing. Turning it on checks the VPC first and answers 409 with a sentence saying why when it cannot be served. Turning it off drains: the names keep resolving for guests whose DHCP lease still names the resolver, and state is winding_down until then. The answer is the state the change leads to, setting_up or winding_down when it could not be read back yet: read it again with GET.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v1/vpcs/{id}/internal-dns (the `SetVpcInternalDns` operationId).
+func (c *ClientWithResponses) SetVpcInternalDnsWithResponse(ctx context.Context, id string, body SetVpcInternalDnsJSONRequestBody, reqEditors ...RequestEditorFn) (*SetVpcInternalDnsResponse, error) {
+	rsp, err := c.SetVpcInternalDns(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetVpcInternalDnsResponse(rsp)
 }
 
 // ListVpcReservedIpsWithResponse List the account's reserved public IPs
@@ -46546,6 +47204,224 @@ func ParseListVpcFirewallRulesResponse(rsp *http.Response) (*ListVpcFirewallRule
 			return nil, err
 		}
 		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteVpcInternalDnsResponse parses an HTTP response from a DeleteVpcInternalDnsWithResponse call
+func ParseDeleteVpcInternalDnsResponse(rsp *http.Response) (*DeleteVpcInternalDnsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteVpcInternalDnsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicVpcInternalDnsDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetVpcInternalDnsResponse parses an HTTP response from a GetVpcInternalDnsWithResponse call
+func ParseGetVpcInternalDnsResponse(rsp *http.Response) (*GetVpcInternalDnsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetVpcInternalDnsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicVpcInternalDnsDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetVpcInternalDnsResponse parses an HTTP response from a SetVpcInternalDnsWithResponse call
+func ParseSetVpcInternalDnsResponse(rsp *http.Response) (*SetVpcInternalDnsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetVpcInternalDnsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicVpcInternalDnsDto
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ProblemDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
 
 	}
 
