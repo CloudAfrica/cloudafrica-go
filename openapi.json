@@ -1728,7 +1728,7 @@
         "properties": {
           "mode": {
             "type": "string",
-            "description": "off, enabled, suspended, or unknown when Croit cannot determine it."
+            "description": "off, enabled or suspended."
           }
         }
       },
@@ -1744,8 +1744,7 @@
             "description": "The new versioning state.",
             "enum": [
               "off",
-              "enabled",
-              "suspended"
+              "enabled"
             ]
           }
         }
@@ -2957,11 +2956,10 @@
           },
           "versioning": {
             "type": "string",
-            "description": "Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.",
+            "description": "Versioning at creation, off / enabled; absent leaves versioning off.",
             "enum": [
               "off",
-              "enabled",
-              "suspended"
+              "enabled"
             ]
           }
         }
@@ -9428,7 +9426,7 @@
       },
       "patch": {
         "summary": "Change a bucket's versioning state",
-        "description": "Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.",
+        "description": "Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.",
         "operationId": "updateBucketVersioning",
         "tags": [
           "Buckets"
@@ -24017,15 +24015,16 @@
   },
   "x-tagGroups": [
     {
+      "name": "Account",
       "tags": [
         "Account",
         "Operations",
         "Activity",
         "Projects"
-      ],
-      "name": "Account"
+      ]
     },
     {
+      "name": "Compute",
       "tags": [
         "Virtual machines",
         "Disks & interfaces",
@@ -24033,50 +24032,49 @@
         "Placement groups",
         "Sandboxes",
         "Kubernetes"
-      ],
-      "name": "Compute"
+      ]
     },
     {
+      "name": "Networking",
       "tags": [
         "VPCs",
         "IP addresses",
         "Firewall rules"
-      ],
-      "name": "Networking"
+      ]
     },
     {
+      "name": "Backup",
       "tags": [
         "Backups",
         "Backup policies"
-      ],
-      "name": "Backup"
+      ]
     },
     {
+      "name": "Storage",
       "tags": [
         "Buckets",
         "Access keys"
-      ],
-      "name": "Storage"
+      ]
     },
     {
+      "name": "Billing",
       "tags": [
         "Balance & details",
         "Transactions",
         "Cards"
-      ],
-      "name": "Billing"
+      ]
     },
     {
+      "name": "Team",
       "tags": [
         "Members"
-      ],
-      "name": "Team"
+      ]
     },
     {
+      "name": "Support",
       "tags": [
         "Support"
-      ],
-      "name": "Support"
+      ]
     }
   ]
 }

@@ -68,9 +68,8 @@ func (e PublicActivityStatus) Valid() bool {
 
 // Defines values for PublicBucketVersioningRequestMode.
 const (
-	PublicBucketVersioningRequestModeEnabled   PublicBucketVersioningRequestMode = "enabled"
-	PublicBucketVersioningRequestModeOff       PublicBucketVersioningRequestMode = "off"
-	PublicBucketVersioningRequestModeSuspended PublicBucketVersioningRequestMode = "suspended"
+	PublicBucketVersioningRequestModeEnabled PublicBucketVersioningRequestMode = "enabled"
+	PublicBucketVersioningRequestModeOff     PublicBucketVersioningRequestMode = "off"
 )
 
 // Valid indicates whether the value is a known member of the PublicBucketVersioningRequestMode enum.
@@ -79,8 +78,6 @@ func (e PublicBucketVersioningRequestMode) Valid() bool {
 	case PublicBucketVersioningRequestModeEnabled:
 		return true
 	case PublicBucketVersioningRequestModeOff:
-		return true
-	case PublicBucketVersioningRequestModeSuspended:
 		return true
 	default:
 		return false
@@ -263,9 +260,8 @@ func (e PublicMemberRoleRequestRole) Valid() bool {
 
 // Defines values for PublicOrderBucketRequestVersioning.
 const (
-	PublicOrderBucketRequestVersioningEnabled   PublicOrderBucketRequestVersioning = "enabled"
-	PublicOrderBucketRequestVersioningOff       PublicOrderBucketRequestVersioning = "off"
-	PublicOrderBucketRequestVersioningSuspended PublicOrderBucketRequestVersioning = "suspended"
+	PublicOrderBucketRequestVersioningEnabled PublicOrderBucketRequestVersioning = "enabled"
+	PublicOrderBucketRequestVersioningOff     PublicOrderBucketRequestVersioning = "off"
 )
 
 // Valid indicates whether the value is a known member of the PublicOrderBucketRequestVersioning enum.
@@ -274,8 +270,6 @@ func (e PublicOrderBucketRequestVersioning) Valid() bool {
 	case PublicOrderBucketRequestVersioningEnabled:
 		return true
 	case PublicOrderBucketRequestVersioningOff:
-		return true
-	case PublicOrderBucketRequestVersioningSuspended:
 		return true
 	default:
 		return false
@@ -1401,7 +1395,7 @@ type PublicBucketUsageDto struct {
 
 // PublicBucketVersioningDto A bucket's current versioning state.
 type PublicBucketVersioningDto struct {
-	// Mode off, enabled, suspended, or unknown when Croit cannot determine it.
+	// Mode off, enabled or suspended.
 	Mode *string `json:"mode,omitempty"`
 }
 
@@ -2122,11 +2116,11 @@ type PublicOrderBucketRequest struct {
 	// ObjectLock Enable S3 object lock. Write-once: a bucket ordered without it can never be locked afterwards.
 	ObjectLock *bool `json:"objectLock,omitempty"`
 
-	// Versioning Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.
+	// Versioning Versioning at creation, off / enabled; absent leaves versioning off.
 	Versioning *PublicOrderBucketRequestVersioning `json:"versioning,omitempty"`
 }
 
-// PublicOrderBucketRequestVersioning Versioning at creation, enabled or suspended. Absent, or off, creates the bucket suspended; off is deprecated.
+// PublicOrderBucketRequestVersioning Versioning at creation, off / enabled; absent leaves versioning off.
 type PublicOrderBucketRequestVersioning string
 
 // PublicOsImageDto An operating-system image a virtual machine can be created from.
@@ -4058,7 +4052,7 @@ type ClientInterface interface {
 
 	// UpdateBucketVersioningWithBody Change a bucket's versioning state
 	//
-	// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+	// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -4067,7 +4061,7 @@ type ClientInterface interface {
 
 	// UpdateBucketVersioning Change a bucket's versioning state
 	//
-	// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+	// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6313,7 +6307,7 @@ func (c *Gen) GetBucketVersioning(ctx context.Context, id string, reqEditors ...
 
 // UpdateBucketVersioningWithBody Change a bucket's versioning state
 //
-// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 //
 // Takes any type of body and a specified content type.
 //
@@ -6332,7 +6326,7 @@ func (c *Gen) UpdateBucketVersioningWithBody(ctx context.Context, id string, con
 
 // UpdateBucketVersioning Change a bucket's versioning state
 //
-// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -17926,7 +17920,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateBucketVersioningWithBodyWithResponse Change a bucket's versioning state
 	//
-	// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+	// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -17935,7 +17929,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateBucketVersioningWithResponse Change a bucket's versioning state
 	//
-	// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+	// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -34170,7 +34164,7 @@ func (c *ClientWithResponses) GetBucketVersioningWithResponse(ctx context.Contex
 
 // UpdateBucketVersioningWithBodyWithResponse Change a bucket's versioning state
 //
-// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -34185,7 +34179,7 @@ func (c *ClientWithResponses) UpdateBucketVersioningWithBodyWithResponse(ctx con
 
 // UpdateBucketVersioningWithResponse Change a bucket's versioning state
 //
-// Turns versioning on, off or to suspended. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route. `unknown` — the state the read route reports when Croit cannot determine it — is refused, not forwarded.
+// Turns versioning on. It cannot be turned off afterwards, and this API does not suspend it. Do not suspend it from an S3 client: a known storage fault can corrupt a suspended bucket. Requires protected:s3 for every mode. Needs read:s3 as well as this route's own scope: the bucket is named by id, and the gateway resolves it through the account's gated bucket list, which is itself a read:s3 route.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
